@@ -51,6 +51,7 @@ These examples are classified automatically:
 - `what is the expense code for invoice INV-10045` -> `InvoiceExpenseCode`, search value `INV-10045`
 - `find file links for receipt.pdf` -> `FileLinks`, search value `receipt.pdf`
 - `ابحث عن ملف رقم المستند 12345` -> `FileLinks`, search value `12345`
+- `ابحث عن المستند رقم 42 لسنة 2024-2025` -> `FileLinks`, search value `42 لسنة 2024-2025`
 - `اعرض الملفات بالتكلفة 1500` -> `FileLinks`, search value `1500`
 - `هات مرفق بتاريخ 2024-05-10` -> `FileLinks`, search value `2024-05-10`
 
@@ -59,6 +60,8 @@ If a user types only a direct value, such as `INV-10045`, the selected button is
 For the `adminmodeluniversitiy` app, the file-link query should search `dbo.UploadExpenseIncome`.
 The `@SearchText` value can match document number, file path, document type, date, and any notes/cost
 columns you add to `dbo.Chatbot_GetFileLinks`.
+For phrases like `ابحث عن المستند رقم 42 لسنة 2024-2025`, the parser sends `42 لسنة 2024-2025`;
+the SQL template splits it into document number `42` and document/academic year `2024-2025`.
 
 ## Configuration
 

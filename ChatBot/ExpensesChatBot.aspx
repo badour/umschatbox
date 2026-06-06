@@ -185,6 +185,7 @@
                         <strong>what is the expense code for invoice INV-10045</strong>,
                         <strong>find file links for receipt.pdf</strong>,
                         <strong>ابحث عن ملف رقم المستند 12345</strong>,
+                        <strong>ابحث عن المستند رقم 42 لسنة 2024-2025</strong>,
                         <strong>اعرض الملفات بالتكلفة 1500</strong>.
                     </div>
 

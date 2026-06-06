@@ -189,6 +189,11 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "ايصال",
             "إيصال",
             "ملاحظات",
+            "المستند",
+            "السند",
+            "سنة",
+            "لسنة",
+            "عام",
             "بيان",
             "تكلفة",
             "التكلفة",
@@ -200,7 +205,17 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "رقم المستند",
             "رقم السند",
             "رقم الملف",
-            "رقم الوثيقة"))
+            "رقم الوثيقة",
+            "المستند رقم",
+            "مستند رقم",
+            "السند رقم",
+            "سند رقم",
+            "الوثيقة رقم",
+            "وثيقة رقم",
+            "لسنة",
+            "للسنة",
+            "سنة",
+            "عام"))
         {
             queryType = ExpenseChatbotQueryType.FileLinks;
             return true;
@@ -272,6 +287,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
     private static string ExtractFileSearchValue(string question)
     {
+        string documentYearValue = ExtractArabicDocumentYearValue(question);
+        if (!string.IsNullOrWhiteSpace(documentYearValue))
+        {
+            return documentYearValue;
+        }
+
         string value = ExtractAfterPhrase(
             question,
             "file links for",
@@ -333,12 +354,20 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "بتاريخ",
             "تاريخ",
             "رقم المستند",
+            "المستند رقم",
+            "مستند رقم",
             "برقم المستند",
             "رقم السند",
+            "السند رقم",
+            "سند رقم",
             "برقم السند",
             "رقم الوثيقة",
+            "الوثيقة رقم",
+            "وثيقة رقم",
             "برقم الوثيقة",
             "رقم الملف",
+            "الملف رقم",
+            "ملف رقم",
             "برقم الملف",
             "برقم",
             "رقم");
@@ -355,6 +384,26 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         }
 
         return ExtractInvoiceLikeToken(question);
+    }
+
+    private static string ExtractArabicDocumentYearValue(string question)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return string.Empty;
+        }
+
+        Match match = Regex.Match(
+            question,
+            @"(?:المستند|مستند|السند|سند|الوثيقة|وثيقة|الملف|ملف)\s+رقم\s+(?<number>[\p{L}\p{N}-]+)\s+(?:لسنة|للسنة|سنة|عام)\s+(?<year>[\p{L}\p{N}/-]+)",
+            RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+        {
+            return string.Empty;
+        }
+
+        return CleanExtractedValue(match.Groups["number"].Value + " لسنة " + match.Groups["year"].Value);
     }
 
     private static string ExtractInvoiceSearchValue(string question)
@@ -498,7 +547,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         string cleanedValue = Regex.Replace(value, @"[?.!,;]+$", string.Empty).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(named|called|number|no\.?|id|is)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(invoice\s+number|invoice\s+no\.?|invoice|expense\s+code|employee|person|user|staff|member|file\s+notes|notes|total\s+cost|cost|amount|date|doc\s+number|document\s+number|doc\s+no\.?)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
-        cleanedValue = Regex.Replace(cleanedValue, @"^(رقم\s+الفاتورة|فاتورة|كود\s+المصروف|موظف|شخص|مستخدم|ملاحظات\s+الملف|ملاحظات|بيان\s+الملف|بيان|التكلفة\s+الكلية|اجمالي\s+التكلفة|إجمالي\s+التكلفة|بالإجمالي|التكلفة|بالتكلفة|تكلفة|المبلغ|بالمبلغ|بمبلغ|مبلغ|التاريخ|بالتاريخ|بتاريخ|تاريخ|رقم\s+المستند|برقم\s+المستند|رقم\s+السند|برقم\s+السند|رقم\s+الوثيقة|برقم\s+الوثيقة|رقم\s+الملف|برقم\s+الملف|برقم|رقم)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(رقم\s+الفاتورة|فاتورة|كود\s+المصروف|موظف|شخص|مستخدم|ملاحظات\s+الملف|ملاحظات|بيان\s+الملف|بيان|التكلفة\s+الكلية|اجمالي\s+التكلفة|إجمالي\s+التكلفة|بالإجمالي|التكلفة|بالتكلفة|تكلفة|المبلغ|بالمبلغ|بمبلغ|مبلغ|التاريخ|بالتاريخ|بتاريخ|تاريخ|رقم\s+المستند|المستند\s+رقم|مستند\s+رقم|برقم\s+المستند|رقم\s+السند|السند\s+رقم|سند\s+رقم|برقم\s+السند|رقم\s+الوثيقة|الوثيقة\s+رقم|وثيقة\s+رقم|برقم\s+الوثيقة|رقم\s+الملف|الملف\s+رقم|ملف\s+رقم|برقم\s+الملف|برقم|رقم)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(please|pls)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(من فضلك|لو سمحت|رجاء)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         return cleanedValue;
@@ -595,6 +644,8 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("show file for doc number 12345", ExpenseChatbotQueryType.FileLinks),
             Sample("ابحث عن رابط الملف", ExpenseChatbotQueryType.FileLinks),
             Sample("اعرض ملف رقم المستند 12345", ExpenseChatbotQueryType.FileLinks),
+            Sample("ابحث عن المستند رقم 42 لسنة 2024-2025", ExpenseChatbotQueryType.FileLinks),
+            Sample("هات السند رقم 42 لسنة 2024-2025", ExpenseChatbotQueryType.FileLinks),
             Sample("هات مرفق بتاريخ 2024-05-10", ExpenseChatbotQueryType.FileLinks),
             Sample("ابحث في ملاحظات الملف صيانة", ExpenseChatbotQueryType.FileLinks),
             Sample("اعرض الملفات بالتكلفة 1500", ExpenseChatbotQueryType.FileLinks),
