@@ -12,16 +12,24 @@ BEGIN
     SET NOCOUNT ON;
 
     SELECT TOP (50)
-        f.InvoiceNumber,
-        f.ExpenseCode,
-        f.FileName,
-        f.FileUrl,
-        f.UploadedOn
-    FROM dbo.ExpenseFiles AS f
-    WHERE f.InvoiceNumber LIKE '%' + @SearchText + '%'
-       OR f.ExpenseCode LIKE '%' + @SearchText + '%'
-       OR f.FileName LIKE '%' + @SearchText + '%'
-    ORDER BY f.UploadedOn DESC;
+        f.DocNum,
+        f.[date],
+        f.FilePath,
+        f.DocType
+        -- Add these columns if they exist in your table:
+        --, f.FileName
+        --, f.FileNotes
+        --, f.TotalCost
+    FROM dbo.UploadExpenseIncome AS f
+    WHERE CAST(f.DocNum AS NVARCHAR(200)) LIKE '%' + @SearchText + '%'
+       OR CONVERT(NVARCHAR(30), f.[date], 23) LIKE '%' + @SearchText + '%'
+       OR f.FilePath LIKE '%' + @SearchText + '%'
+       OR f.DocType LIKE '%' + @SearchText + '%'
+       -- Uncomment and rename these columns if your table has them:
+       -- OR f.FileName LIKE '%' + @SearchText + '%'
+       -- OR f.FileNotes LIKE '%' + @SearchText + '%'
+       -- OR CAST(f.TotalCost AS NVARCHAR(200)) LIKE '%' + @SearchText + '%'
+    ORDER BY f.[date] DESC;
 END;
 GO
 

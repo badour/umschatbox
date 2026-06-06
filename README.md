@@ -50,12 +50,20 @@ These examples are classified automatically:
 - `list expenses submitted by employee Sara` -> `PersonExpenses`, search value `Sara`
 - `what is the expense code for invoice INV-10045` -> `InvoiceExpenseCode`, search value `INV-10045`
 - `find file links for receipt.pdf` -> `FileLinks`, search value `receipt.pdf`
+- `ابحث عن ملف رقم المستند 12345` -> `FileLinks`, search value `12345`
+- `اعرض الملفات بالتكلفة 1500` -> `FileLinks`, search value `1500`
+- `هات مرفق بتاريخ 2024-05-10` -> `FileLinks`, search value `2024-05-10`
 
 If a user types only a direct value, such as `INV-10045`, the selected button is used as the fallback query type.
 
+For the `adminmodeluniversitiy` app, the file-link query should search `dbo.UploadExpenseIncome`.
+The `@SearchText` value can match document number, file path, document type, date, and any notes/cost
+columns you add to `dbo.Chatbot_GetFileLinks`.
+
 ## Configuration
 
-By default, the chatbot expects a connection string named `ExpensesDb` and these stored procedures:
+By default for `adminmodeluniversitiy`, the chatbot expects a connection string named `generalUniversityDB`
+and these stored procedures:
 
 - `dbo.Chatbot_GetFileLinks @SearchText`
 - `dbo.Chatbot_GetInvoiceExpenseCodes @InvoiceNumber`
@@ -79,8 +87,8 @@ Check these items:
 
    ```xml
    <connectionStrings>
-     <add name="ExpensesDb"
-          connectionString="Data Source=YOUR_SERVER;Initial Catalog=YOUR_DB;Integrated Security=True;"
+     <add name="generalUniversityDB"
+          connectionString="Data Source=DESKTOP-2OC4RDU;Initial Catalog=UniversityDBiap;Integrated Security=True;TrustServerCertificate=True;"
           providerName="System.Data.SqlClient" />
    </connectionStrings>
    ```
@@ -88,7 +96,7 @@ Check these items:
 2. The chatbot app setting points to that connection string.
 
    ```xml
-   <add key="ExpenseChatbot.ConnectionStringName" value="ExpensesDb" />
+   <add key="ExpenseChatbot.ConnectionStringName" value="generalUniversityDB" />
    ```
 
 3. The stored procedure for the selected intent exists in the same database.

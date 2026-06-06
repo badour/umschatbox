@@ -183,7 +183,9 @@
                     <div class="chatbot-examples">
                         Examples: <strong>show me expenses for Ahmed</strong>,
                         <strong>what is the expense code for invoice INV-10045</strong>,
-                        <strong>find file links for receipt.pdf</strong>.
+                        <strong>find file links for receipt.pdf</strong>,
+                        <strong>ابحث عن ملف رقم المستند 12345</strong>,
+                        <strong>اعرض الملفات بالتكلفة 1500</strong>.
                     </div>
 
                     <div class="chatbot-input-row">

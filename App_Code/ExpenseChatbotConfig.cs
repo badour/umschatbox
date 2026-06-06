@@ -3,7 +3,7 @@ using System.Configuration;
 
 public static class ExpenseChatbotConfig
 {
-    private const string DefaultConnectionStringName = "ExpensesDb";
+    private const string DefaultConnectionStringName = "generalUniversityDB";
     private const int DefaultCommandTimeoutSeconds = 30;
     private const int DefaultMaxRows = 50;
     private const double DefaultIntentConfidenceThreshold = 0.35D;

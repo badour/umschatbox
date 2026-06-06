@@ -100,29 +100,149 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         string normalized = question.ToLowerInvariant();
         return normalized.Contains(" ")
-            && Regex.IsMatch(
+            && ContainsAny(
                 normalized,
-                @"\b(show|find|get|list|what|where|which|give|display|search|expense|expenses|invoice|file|link|person|employee|user|for|by)\b",
-                RegexOptions.IgnoreCase);
+                "show",
+                "find",
+                "get",
+                "list",
+                "what",
+                "where",
+                "which",
+                "give",
+                "display",
+                "search",
+                "expense",
+                "expenses",
+                "invoice",
+                "file",
+                "link",
+                "person",
+                "employee",
+                "user",
+                "for",
+                "by",
+                "ابحث",
+                "اعرض",
+                "اظهر",
+                "اريد",
+                "هات",
+                "فين",
+                "اين",
+                "ملف",
+                "ملفات",
+                "رابط",
+                "روابط",
+                "مرفق",
+                "مرفقات",
+                "مستند",
+                "مستندات",
+                "وثيقة",
+                "وثائق",
+                "مصروف",
+                "مصروفات",
+                "فاتورة",
+                "فواتير",
+                "شخص",
+                "موظف",
+                "مستخدم",
+                "رقم",
+                "تاريخ",
+                "تكلفة",
+                "مبلغ",
+                "ملاحظات");
     }
 
     private static bool TryClassifyByKeywords(string question, out ExpenseChatbotQueryType queryType)
     {
         string normalized = question.ToLowerInvariant();
 
-        if (ContainsAny(normalized, "file", "files", "link", "links", "attachment", "attachments", "receipt", "receipts", "document", "documents"))
+        if (ContainsAny(
+            normalized,
+            "file",
+            "files",
+            "link",
+            "links",
+            "attachment",
+            "attachments",
+            "receipt",
+            "receipts",
+            "document",
+            "documents",
+            "file notes",
+            "notes",
+            "total cost",
+            "cost",
+            "doc number",
+            "document number",
+            "doc no",
+            "ملف",
+            "ملفات",
+            "رابط",
+            "روابط",
+            "مرفق",
+            "مرفقات",
+            "مستند",
+            "مستندات",
+            "وثيقة",
+            "وثائق",
+            "ايصال",
+            "إيصال",
+            "ملاحظات",
+            "بيان",
+            "تكلفة",
+            "التكلفة",
+            "مبلغ",
+            "المبلغ",
+            "اجمالي",
+            "إجمالي",
+            "تاريخ",
+            "رقم المستند",
+            "رقم السند",
+            "رقم الملف",
+            "رقم الوثيقة"))
         {
             queryType = ExpenseChatbotQueryType.FileLinks;
             return true;
         }
 
-        if (ContainsAny(normalized, "expense code", "expense codes", "invoice code", "invoice number", "invoice no", "invoice"))
+        if (ContainsAny(
+            normalized,
+            "expense code",
+            "expense codes",
+            "invoice code",
+            "invoice number",
+            "invoice no",
+            "invoice",
+            "كود المصروف",
+            "اكواد المصروف",
+            "أكواد المصروف",
+            "كود الفاتورة",
+            "رقم الفاتورة",
+            "فاتورة"))
         {
             queryType = ExpenseChatbotQueryType.InvoiceExpenseCode;
             return true;
         }
 
-        if (ContainsAny(normalized, "person", "employee", "user", "staff", "worker", "expenses for", "expense for", "spent by"))
+        if (ContainsAny(
+            normalized,
+            "person",
+            "employee",
+            "user",
+            "staff",
+            "worker",
+            "expenses for",
+            "expense for",
+            "spent by",
+            "شخص",
+            "موظف",
+            "مستخدم",
+            "عامل",
+            "مصروفات ل",
+            "مصروفات عن",
+            "مصروفات الموظف",
+            "مصروفات المستخدم"))
         {
             queryType = ExpenseChatbotQueryType.PersonExpenses;
             return true;
@@ -168,9 +288,73 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "document for",
             "for invoice",
             "for expense",
-            "for");
+            "file notes",
+            "notes",
+            "total cost",
+            "cost",
+            "amount",
+            "date",
+            "doc number",
+            "document number",
+            "doc no",
+            "document no",
+            "file number",
+            "file no",
+            "for",
+            "روابط الملفات عن",
+            "روابط الملف عن",
+            "رابط الملف عن",
+            "رابط ملف عن",
+            "ملفات عن",
+            "ملف عن",
+            "مرفقات عن",
+            "مرفق عن",
+            "مستندات عن",
+            "مستند عن",
+            "وثائق عن",
+            "وثيقة عن",
+            "ملاحظات الملف",
+            "ملاحظات",
+            "بيان الملف",
+            "بيان",
+            "التكلفة الكلية",
+            "اجمالي التكلفة",
+            "إجمالي التكلفة",
+            "بالإجمالي",
+            "التكلفة",
+            "بالتكلفة",
+            "تكلفة",
+            "المبلغ",
+            "بالمبلغ",
+            "بمبلغ",
+            "مبلغ",
+            "التاريخ",
+            "بالتاريخ",
+            "بتاريخ",
+            "تاريخ",
+            "رقم المستند",
+            "برقم المستند",
+            "رقم السند",
+            "برقم السند",
+            "رقم الوثيقة",
+            "برقم الوثيقة",
+            "رقم الملف",
+            "برقم الملف",
+            "برقم",
+            "رقم");
 
-        return string.IsNullOrWhiteSpace(value) ? ExtractInvoiceLikeToken(question) : value;
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        string dateValue = ExtractDateLikeToken(question);
+        if (!string.IsNullOrWhiteSpace(dateValue))
+        {
+            return dateValue;
+        }
+
+        return ExtractInvoiceLikeToken(question);
     }
 
     private static string ExtractInvoiceSearchValue(string question)
@@ -184,7 +368,14 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "invoice number",
             "invoice no",
             "invoice",
-            "for");
+            "for",
+            "كود المصروف للفاتورة",
+            "كود المصروف لفاتورة",
+            "كود فاتورة",
+            "رقم الفاتورة",
+            "فاتورة",
+            "للفاتورة",
+            "لفواتير");
 
         return string.IsNullOrWhiteSpace(value) ? ExtractInvoiceLikeToken(question) : value;
     }
@@ -211,7 +402,28 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "by",
             "person",
             "employee",
-            "user");
+            "user",
+            "مصروفات لشخص",
+            "مصروفات لموظف",
+            "مصروفات لمستخدم",
+            "مصروفات عن شخص",
+            "مصروفات عن موظف",
+            "مصروفات عن مستخدم",
+            "مصروفات ل",
+            "مصروفات عن",
+            "مصروف ل",
+            "مصروف عن",
+            "صرف بواسطة",
+            "تم الصرف بواسطة",
+            "بواسطة",
+            "للموظف",
+            "للمستخدم",
+            "لشخص",
+            "لموظف",
+            "لمستخدم",
+            "شخص",
+            "موظف",
+            "مستخدم");
 
         return value;
     }
@@ -228,7 +440,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             string phrase = phrases[phraseIndex];
             Match match = Regex.Match(
                 question,
-                @"\b" + Regex.Escape(phrase) + @"\b\s*[:#-]?\s*(?<value>.+)$",
+                @"(?:^|\s)" + Regex.Escape(phrase) + @"(?:\s|[:#-])+\s*(?<value>.+)$",
                 RegexOptions.IgnoreCase);
 
             if (match.Success)
@@ -261,6 +473,21 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         return numberMatch.Success ? numberMatch.Value : string.Empty;
     }
 
+    private static string ExtractDateLikeToken(string question)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return string.Empty;
+        }
+
+        Match dateMatch = Regex.Match(
+            question,
+            @"\b\d{1,4}[-/]\d{1,2}[-/]\d{1,4}\b",
+            RegexOptions.IgnoreCase);
+
+        return dateMatch.Success ? dateMatch.Value : string.Empty;
+    }
+
     private static string CleanExtractedValue(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -270,8 +497,10 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         string cleanedValue = Regex.Replace(value, @"[?.!,;]+$", string.Empty).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(named|called|number|no\.?|id|is)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
-        cleanedValue = Regex.Replace(cleanedValue, @"^(invoice\s+number|invoice\s+no\.?|invoice|expense\s+code|employee|person|user|staff|member)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(invoice\s+number|invoice\s+no\.?|invoice|expense\s+code|employee|person|user|staff|member|file\s+notes|notes|total\s+cost|cost|amount|date|doc\s+number|document\s+number|doc\s+no\.?)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(رقم\s+الفاتورة|فاتورة|كود\s+المصروف|موظف|شخص|مستخدم|ملاحظات\s+الملف|ملاحظات|بيان\s+الملف|بيان|التكلفة\s+الكلية|اجمالي\s+التكلفة|إجمالي\s+التكلفة|بالإجمالي|التكلفة|بالتكلفة|تكلفة|المبلغ|بالمبلغ|بمبلغ|مبلغ|التاريخ|بالتاريخ|بتاريخ|تاريخ|رقم\s+المستند|برقم\s+المستند|رقم\s+السند|برقم\s+السند|رقم\s+الوثيقة|برقم\s+الوثيقة|رقم\s+الملف|برقم\s+الملف|برقم|رقم)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(please|pls)$", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"\s+(من فضلك|لو سمحت|رجاء)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         return cleanedValue;
     }
 
@@ -360,6 +589,16 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("search expense files", ExpenseChatbotQueryType.FileLinks),
             Sample("show me uploaded file for this invoice", ExpenseChatbotQueryType.FileLinks),
             Sample("find supporting document link", ExpenseChatbotQueryType.FileLinks),
+            Sample("find file by notes maintenance", ExpenseChatbotQueryType.FileLinks),
+            Sample("search file using total cost 1500", ExpenseChatbotQueryType.FileLinks),
+            Sample("get document by date 2024-05-10", ExpenseChatbotQueryType.FileLinks),
+            Sample("show file for doc number 12345", ExpenseChatbotQueryType.FileLinks),
+            Sample("ابحث عن رابط الملف", ExpenseChatbotQueryType.FileLinks),
+            Sample("اعرض ملف رقم المستند 12345", ExpenseChatbotQueryType.FileLinks),
+            Sample("هات مرفق بتاريخ 2024-05-10", ExpenseChatbotQueryType.FileLinks),
+            Sample("ابحث في ملاحظات الملف صيانة", ExpenseChatbotQueryType.FileLinks),
+            Sample("اعرض الملفات بالتكلفة 1500", ExpenseChatbotQueryType.FileLinks),
+            Sample("فين رابط المستند", ExpenseChatbotQueryType.FileLinks),
 
             Sample("what is the expense code for invoice INV-10045", ExpenseChatbotQueryType.InvoiceExpenseCode),
             Sample("show invoice expense code", ExpenseChatbotQueryType.InvoiceExpenseCode),
@@ -369,6 +608,9 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("invoice details by expense code", ExpenseChatbotQueryType.InvoiceExpenseCode),
             Sample("lookup invoice expense details", ExpenseChatbotQueryType.InvoiceExpenseCode),
             Sample("show specific invoice details", ExpenseChatbotQueryType.InvoiceExpenseCode),
+            Sample("ما هو كود المصروف للفاتورة INV-10045", ExpenseChatbotQueryType.InvoiceExpenseCode),
+            Sample("اعرض كود الفاتورة", ExpenseChatbotQueryType.InvoiceExpenseCode),
+            Sample("ابحث عن رقم الفاتورة 12345", ExpenseChatbotQueryType.InvoiceExpenseCode),
 
             Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.PersonExpenses),
             Sample("find expenses related to Sarah", ExpenseChatbotQueryType.PersonExpenses),
@@ -377,7 +619,10 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("show person expense history", ExpenseChatbotQueryType.PersonExpenses),
             Sample("what did this employee spend", ExpenseChatbotQueryType.PersonExpenses),
             Sample("search expenses by person name", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("display expenses for staff member", ExpenseChatbotQueryType.PersonExpenses)
+            Sample("display expenses for staff member", ExpenseChatbotQueryType.PersonExpenses),
+            Sample("اعرض مصروفات احمد", ExpenseChatbotQueryType.PersonExpenses),
+            Sample("ابحث عن مصروفات الموظف علي", ExpenseChatbotQueryType.PersonExpenses),
+            Sample("هات مصروفات المستخدم سارة", ExpenseChatbotQueryType.PersonExpenses)
         };
     }
 
