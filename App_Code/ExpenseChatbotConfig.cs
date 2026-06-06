@@ -10,7 +10,7 @@ public static class ExpenseChatbotConfig
 
     public static string GetConnectionString()
     {
-        string connectionStringName = GetAppSetting("ExpenseChatbot.ConnectionStringName", DefaultConnectionStringName);
+        string connectionStringName = GetConnectionStringName();
         ConnectionStringSettings connectionString = ConfigurationManager.ConnectionStrings[connectionStringName];
 
         if (connectionString == null || string.IsNullOrWhiteSpace(connectionString.ConnectionString))
@@ -22,6 +22,11 @@ public static class ExpenseChatbotConfig
         }
 
         return connectionString.ConnectionString;
+    }
+
+    public static string GetConnectionStringName()
+    {
+        return GetAppSetting("ExpenseChatbot.ConnectionStringName", DefaultConnectionStringName);
     }
 
     public static int GetCommandTimeoutSeconds()
@@ -45,6 +50,13 @@ public static class ExpenseChatbotConfig
         }
 
         return parsedValue;
+    }
+
+    public static bool ShowDetailedErrors()
+    {
+        string value = ConfigurationManager.AppSettings["ExpenseChatbot.ShowDetailedErrors"];
+        bool parsedValue;
+        return bool.TryParse(value, out parsedValue) && parsedValue;
     }
 
     private static string GetAppSetting(string key, string defaultValue)

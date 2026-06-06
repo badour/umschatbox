@@ -64,6 +64,55 @@ By default, the chatbot expects a connection string named `ExpensesDb` and these
 You can override the connection string name, stored procedure names, parameter names, command timeout,
 max displayed rows, and ML.NET intent confidence threshold through `appSettings` in `Web.config`.
 
+## Troubleshooting the red error message
+
+If the page shows:
+
+```text
+I could not complete that query. Please check the chatbot configuration or contact support.
+```
+
+or a `Chatbot database error`, the natural-language part already worked, but the database call failed.
+Check these items:
+
+1. `Web.config` has a real connection string for your expenses database.
+
+   ```xml
+   <connectionStrings>
+     <add name="ExpensesDb"
+          connectionString="Data Source=YOUR_SERVER;Initial Catalog=YOUR_DB;Integrated Security=True;"
+          providerName="System.Data.SqlClient" />
+   </connectionStrings>
+   ```
+
+2. The chatbot app setting points to that connection string.
+
+   ```xml
+   <add key="ExpenseChatbot.ConnectionStringName" value="ExpensesDb" />
+   ```
+
+3. The stored procedure for the selected intent exists in the same database.
+
+   For `find file links for receipt.pdf`, the code calls:
+
+   ```sql
+   dbo.Chatbot_GetFileLinks @SearchText = 'receipt.pdf'
+   ```
+
+4. The application database user has permission to execute the stored procedure.
+
+   ```sql
+   GRANT EXECUTE ON dbo.Chatbot_GetFileLinks TO [YourAppUser];
+   ```
+
+During local setup only, you can temporarily enable detailed errors:
+
+```xml
+<add key="ExpenseChatbot.ShowDetailedErrors" value="true" />
+```
+
+Set it back to `false` before production use.
+
 ## Security notes
 
 - User input is sent to SQL Server as parameters, not string-concatenated SQL.

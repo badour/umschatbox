@@ -1,5 +1,7 @@
 using System;
+using System.Configuration;
 using System.Data;
+using System.Data.SqlClient;
 using System.Web;
 
 public sealed class ExpenseChatbotService
@@ -51,11 +53,27 @@ public sealed class ExpenseChatbotService
 
             return new ExpenseChatbotResponse(message, displayResults, false);
         }
+        catch (ConfigurationErrorsException exception)
+        {
+            TraceException(exception);
+            return new ExpenseChatbotResponse(
+                "Chatbot configuration error: " + exception.Message,
+                null,
+                true);
+        }
+        catch (SqlException exception)
+        {
+            TraceException(exception);
+            return new ExpenseChatbotResponse(
+                BuildSqlErrorMessage(definition, exception),
+                null,
+                true);
+        }
         catch (Exception exception)
         {
             TraceException(exception);
             return new ExpenseChatbotResponse(
-                "I could not complete that query. Please check the chatbot configuration or contact support.",
+                BuildUnexpectedErrorMessage(exception),
                 null,
                 true);
         }
@@ -146,5 +164,54 @@ public sealed class ExpenseChatbotService
         }
 
         HttpContext.Current.Trace.Warn("ExpenseChatbot", exception.Message, exception);
+    }
+
+    private static string BuildSqlErrorMessage(ExpenseChatbotQueryDefinition definition, SqlException exception)
+    {
+        string message = string.Format(
+            "Chatbot database error while running '{0}'. Check that Web.config connection string '{1}' points to the correct SQL database and that this stored procedure exists.",
+            definition.StoredProcedureName,
+            ExpenseChatbotConfig.GetConnectionStringName());
+
+        if (IsMissingStoredProcedure(exception))
+        {
+            message += " SQL Server says the stored procedure was not found.";
+        }
+
+        return AppendDetailedError(message, exception);
+    }
+
+    private static string BuildUnexpectedErrorMessage(Exception exception)
+    {
+        string message = "I could not complete that query. Please check the chatbot configuration, SQL connection, and stored procedure setup.";
+        return AppendDetailedError(message, exception);
+    }
+
+    private static string AppendDetailedError(string message, Exception exception)
+    {
+        if (!ExpenseChatbotConfig.ShowDetailedErrors() || exception == null)
+        {
+            return message;
+        }
+
+        return message + " Details: " + exception.Message;
+    }
+
+    private static bool IsMissingStoredProcedure(SqlException exception)
+    {
+        if (exception == null)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < exception.Errors.Count; index++)
+        {
+            if (exception.Errors[index].Number == 2812)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
