@@ -6,6 +6,7 @@ public static class ExpenseChatbotConfig
     private const string DefaultConnectionStringName = "ExpensesDb";
     private const int DefaultCommandTimeoutSeconds = 30;
     private const int DefaultMaxRows = 50;
+    private const double DefaultIntentConfidenceThreshold = 0.35D;
 
     public static string GetConnectionString()
     {
@@ -31,6 +32,19 @@ public static class ExpenseChatbotConfig
     public static int GetMaxRows()
     {
         return GetPositiveIntSetting("ExpenseChatbot.MaxRows", DefaultMaxRows);
+    }
+
+    public static double GetIntentConfidenceThreshold()
+    {
+        string value = ConfigurationManager.AppSettings["ExpenseChatbot.IntentConfidenceThreshold"];
+        double parsedValue;
+
+        if (!double.TryParse(value, out parsedValue) || parsedValue <= 0D || parsedValue > 1D)
+        {
+            return DefaultIntentConfidenceThreshold;
+        }
+
+        return parsedValue;
     }
 
     private static string GetAppSetting(string key, string defaultValue)

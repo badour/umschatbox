@@ -14,7 +14,7 @@ public partial class ExpensesChatBot : Page
         if (!IsPostBack)
         {
             SetSelectedQueryType(ExpenseChatbotQueryType.FileLinks, true);
-            litBotMessage.Text = "Hello. Choose one of the expense questions, enter the requested value, and click Ask.";
+            litBotMessage.Text = "Hello. Type a question like 'show me expenses for Ahmed', or choose a button and enter the requested value.";
         }
     }
 
@@ -36,7 +36,7 @@ public partial class ExpensesChatBot : Page
     protected void btnSend_Click(object sender, EventArgs e)
     {
         ExpenseChatbotQueryType queryType = GetSelectedQueryType();
-        ExpenseChatbotResponse response = new ExpenseChatbotService().Ask(queryType, txtUserInput.Text);
+        ExpenseChatbotResponse response = new ExpenseChatbotService().AskNaturalLanguage(txtUserInput.Text, queryType);
 
         botMessage.Attributes["class"] = response.IsError ? "chatbot-message error" : "chatbot-message";
         litBotMessage.Text = response.Message;
@@ -77,8 +77,8 @@ public partial class ExpensesChatBot : Page
         ViewState["ExpenseChatbotQueryType"] = queryType.ToString();
         hdnQueryType.Value = queryType.ToString();
         litSelectedQuery.Text = definition.Title;
-        lblInput.Text = definition.InputLabel;
-        txtUserInput.Attributes["placeholder"] = definition.InputPlaceholder;
+        lblInput.Text = "Ask a question or enter " + definition.InputLabel.ToLowerInvariant();
+        txtUserInput.Attributes["placeholder"] = "Example: show me expenses for Ahmed, or " + definition.InputPlaceholder;
         botMessage.Attributes["class"] = "chatbot-message";
 
         UpdateActiveButton(queryType);

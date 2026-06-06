@@ -82,6 +82,13 @@
             color: #9f1239;
         }
 
+        .chatbot-examples {
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: -6px 0 18px;
+        }
+
         .chatbot-input-row {
             align-items: flex-end;
             display: flex;
@@ -156,7 +163,7 @@
             <div class="chatbot-card">
                 <div class="chatbot-header">
                     <h1>Expenses Chatbot</h1>
-                    <p>Ask common expense questions using the buttons below.</p>
+                    <p>Type a full question or use the buttons for guided searches.</p>
                 </div>
 
                 <div class="chatbot-body">
@@ -171,6 +178,12 @@
                     <div id="botMessage" runat="server" class="chatbot-message">
                         <strong><asp:Literal ID="litSelectedQuery" runat="server" Mode="Encode" /></strong><br />
                         <asp:Literal ID="litBotMessage" runat="server" Mode="Encode" />
+                    </div>
+
+                    <div class="chatbot-examples">
+                        Examples: <strong>show me expenses for Ahmed</strong>,
+                        <strong>what is the expense code for invoice INV-10045</strong>,
+                        <strong>find file links for receipt.pdf</strong>.
                     </div>
 
                     <div class="chatbot-input-row">

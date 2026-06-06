@@ -61,6 +61,45 @@ public sealed class ExpenseChatbotService
         }
     }
 
+    public ExpenseChatbotResponse AskNaturalLanguage(string question, ExpenseChatbotQueryType fallbackQueryType)
+    {
+        string normalizedQuestion = NormalizeInput(question);
+
+        if (string.IsNullOrWhiteSpace(normalizedQuestion))
+        {
+            return new ExpenseChatbotResponse(
+                "Type a question like 'show me expenses for Ahmed' or enter a value after choosing a button.",
+                null,
+                false);
+        }
+
+        ExpenseChatbotNaturalLanguageRequest request =
+            new ExpenseChatbotNaturalLanguageParser().Parse(normalizedQuestion, fallbackQueryType);
+        ExpenseChatbotQueryDefinition definition = ExpenseChatbotQueryDefinition.FromType(request.QueryType);
+
+        if (string.IsNullOrWhiteSpace(request.SearchValue))
+        {
+            string emptyMessage = request.UsedNaturalLanguage
+                ? string.Format("I understood your question as '{0}', but I still need a search value. {1}", definition.Title, definition.EmptyInputMessage)
+                : definition.EmptyInputMessage;
+
+            return new ExpenseChatbotResponse(emptyMessage, null, false);
+        }
+
+        ExpenseChatbotResponse response = Ask(request.QueryType, request.SearchValue);
+
+        if (response.IsError)
+        {
+            return response;
+        }
+
+        string messagePrefix = request.UsedNaturalLanguage
+            ? string.Format("I understood your question as '{0}' and searched for '{1}'. ", definition.Title, request.SearchValue)
+            : string.Empty;
+
+        return new ExpenseChatbotResponse(messagePrefix + response.Message, response.Results, response.IsError);
+    }
+
     private ExpenseChatbotRepository GetRepository()
     {
         return _repository ?? new ExpenseChatbotRepository();
