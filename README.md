@@ -10,7 +10,14 @@ Users can type natural-language questions, and the page also keeps three guided 
 The module uses ML.NET to classify the user's intent, simple extraction rules to pull out the search
 value, and parameterized SQL stored procedure calls through ADO.NET to query the database.
 
-Example:
+Examples:
+
+```text
+User: show me expenses for Ahmed
+Intent detected by ML.NET: PersonExpenses
+Search value extracted by rules: Ahmed
+SQL procedure called: dbo.Chatbot_GetPersonExpenses @PersonName = 'Ahmed'
+```
 
 ```text
 User: how many expenses for last 3 years
