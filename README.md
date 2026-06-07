@@ -8,7 +8,8 @@ Users can type natural-language questions, and the page also keeps three guided 
 - Find expenses related to a specific person
 
 The module uses ML.NET to classify the user's intent, simple extraction rules to pull out the search
-value, and parameterized SQL stored procedure calls through ADO.NET to query the database.
+value, parameterized SQL stored procedure calls through ADO.NET to query the database, and a reasoning
+layer that summarizes the returned rows before displaying the table.
 
 Examples:
 
@@ -32,6 +33,7 @@ SQL procedure called: dbo.Chatbot_GetExpenseNetValue @SearchText = 'last 3 years
 - `ChatBot/ExpensesChatBot.aspx.cs` - page event handlers, button selection, and result binding.
 - `App_Code/ExpenseChatbot*.cs` - query definitions, configuration, SQL repository, and service logic.
 - `App_Code/ExpenseChatbotNaturalLanguage.cs` - ML.NET intent classifier and natural-language value extraction.
+- `App_Code/ExpenseChatbotReasoningEngine.cs` - post-query analysis for totals, averages, trends, categories, and anomalies.
 - `docs/Web.config.chatbot.example.config` - Web.config connection string and appSettings example.
 - `docs/sql/chatbot-procedures-template.sql` - SQL stored procedure templates to adapt to your schema.
 
@@ -87,6 +89,19 @@ account code and returns debit, credit, net value, and transaction count.
 
 For person payment analysis questions like `ما هي القيمة الكلية للمبالغ المصروفة الى السيح حسين حيدر`,
 the chatbot runs `dbo.Chatbot_GetPersonPaymentTotal` after extracting the name `حسين حيدر`.
+
+## Reasoning layer
+
+After a stored procedure returns data, `ExpenseChatbotReasoningEngine` inspects the `DataTable` before
+the rows are shown. It can add insights such as:
+
+- numeric totals, averages, minimums, and maximums;
+- date ranges and year-over-year direction when date and amount columns are present;
+- largest account/category/person by value or count;
+- possible outliers when one value is much higher than the average.
+
+This keeps the database responsible for retrieving the correct data while the C# chatbot explains what
+the result appears to mean.
 
 ## Configuration
 

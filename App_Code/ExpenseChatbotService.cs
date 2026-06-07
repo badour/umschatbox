@@ -45,10 +45,16 @@ public sealed class ExpenseChatbotService
             int maxRows = ExpenseChatbotConfig.GetMaxRows();
             DataTable displayResults = LimitRows(results, maxRows);
             string message = string.Format(definition.FoundMessage, originalRowCount);
+            string analysis = BuildReasoningAnalysis(queryType, results, originalRowCount);
 
             if (originalRowCount > maxRows)
             {
                 message += string.Format(" Showing the first {0} result(s).", maxRows);
+            }
+
+            if (!string.IsNullOrWhiteSpace(analysis))
+            {
+                message += "\n\n" + analysis;
             }
 
             return new ExpenseChatbotResponse(message, displayResults, false);
@@ -121,6 +127,19 @@ public sealed class ExpenseChatbotService
     private ExpenseChatbotRepository GetRepository()
     {
         return _repository ?? new ExpenseChatbotRepository();
+    }
+
+    private static string BuildReasoningAnalysis(ExpenseChatbotQueryType queryType, DataTable results, int originalRowCount)
+    {
+        try
+        {
+            return ExpenseChatbotReasoningEngine.BuildAnalysis(queryType, results, originalRowCount);
+        }
+        catch (Exception exception)
+        {
+            TraceException(exception);
+            return string.Empty;
+        }
     }
 
     public static bool TryParseQueryType(string value, out ExpenseChatbotQueryType queryType)

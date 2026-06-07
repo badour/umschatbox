@@ -74,6 +74,7 @@
             border-radius: 10px;
             margin-bottom: 18px;
             padding: 14px 16px;
+            white-space: pre-line;
         }
 
         .chatbot-message.error {
