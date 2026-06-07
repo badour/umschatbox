@@ -59,7 +59,15 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         if (looksNaturalLanguage)
         {
-            if (IsExpenseNetValueQuestion(normalizedQuestion))
+            if (IsFixedAssetsByAccountQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.FixedAssetsByAccount;
+            }
+            else if (IsPersonPaymentTotalQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.PersonPaymentTotal;
+            }
+            else if (IsExpenseNetValueQuestion(normalizedQuestion))
             {
                 queryType = ExpenseChatbotQueryType.ExpenseNetValue;
             }
@@ -124,12 +132,21 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "search",
                 "expense",
                 "expenses",
+                "paid",
+                "payment",
+                "payments",
                 "net",
                 "value",
                 "total",
                 "balance",
                 "account",
                 "accounts",
+                "asset",
+                "assets",
+                "fixed",
+                "detail",
+                "details",
+                "detailed",
                 "last",
                 "year",
                 "years",
@@ -160,17 +177,41 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "وثائق",
                 "مصروف",
                 "مصروفات",
+                "مصاريف",
+                "المصاريف",
+                "مبلغ",
+                "مبالغ",
+                "مصروفه",
+                "مصروفة",
+                "مدفوع",
+                "مدفوعة",
                 "صافي",
                 "اجمالي",
                 "إجمالي",
+                "كلي",
+                "كلية",
                 "قيمة",
                 "رصيد",
                 "حساب",
                 "حسابات",
+                "موجودات",
+                "الموجودات",
+                "اصول",
+                "أصول",
+                "ثابت",
+                "ثابتة",
+                "الثابته",
+                "الثابتة",
+                "مفصلة",
+                "تفصيل",
+                "الثلاثية",
+                "الثلاثير",
                 "اخر",
                 "آخر",
                 "سنة",
                 "سنوات",
+                "الى",
+                "إلى",
                 "فاتورة",
                 "فواتير",
                 "شخص",
@@ -186,6 +227,18 @@ public sealed class ExpenseChatbotNaturalLanguageParser
     private static bool TryClassifyByKeywords(string question, out ExpenseChatbotQueryType queryType)
     {
         string normalized = question.ToLowerInvariant();
+
+        if (IsFixedAssetsByAccountQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.FixedAssetsByAccount;
+            return true;
+        }
+
+        if (IsPersonPaymentTotalQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.PersonPaymentTotal;
+            return true;
+        }
 
         if (IsExpenseNetValueQuestion(normalized))
         {
@@ -318,6 +371,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
             case ExpenseChatbotQueryType.ExpenseNetValue:
                 return ExtractExpenseNetValueSearchValue(question);
+
+            case ExpenseChatbotQueryType.FixedAssetsByAccount:
+                return ExtractFixedAssetsByAccountSearchValue(question);
+
+            case ExpenseChatbotQueryType.PersonPaymentTotal:
+                return ExtractPersonPaymentTotalSearchValue(question);
 
             default:
                 return question;
@@ -540,6 +599,10 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "hoe many expenses for",
             "how much expenses for",
             "expenses for",
+            "اريد المصاريف الكلية ل",
+            "اريد المصاريف الكلية",
+            "المصاريف الكلية ل",
+            "المصاريف الكلية",
             "صافي المصروفات عن",
             "صافي المصروفات ل",
             "اجمالي المصروفات عن",
@@ -554,9 +617,135 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         return string.IsNullOrWhiteSpace(value) ? question : value;
     }
 
+    private static string ExtractFixedAssetsByAccountSearchValue(string question)
+    {
+        string value = ExtractLastYearsValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        value = ExtractFromYearValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        value = ExtractAfterPhrase(
+            question,
+            "fixed assets for",
+            "fixed assets during",
+            "fixed assets by account for",
+            "assets by account for",
+            "مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثير لمدة",
+            "مجموع الموجودات الثابتة مفصلة حسب الحسابات الثلاثية لمدة",
+            "مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثية لمدة",
+            "مجموع الموجودات الثابتة مفصلة حسب الحسابات الثلاثير لمدة",
+            "الموجودات الثابته لمدة",
+            "الموجودات الثابتة لمدة",
+            "الاصول الثابتة لمدة",
+            "الأصول الثابتة لمدة",
+            "موجودات ثابتة لمدة");
+
+        return string.IsNullOrWhiteSpace(value) ? question : value;
+    }
+
+    private static string ExtractPersonPaymentTotalSearchValue(string question)
+    {
+        string value = ExtractAfterPhrase(
+            question,
+            "total paid to",
+            "total payments to",
+            "amounts paid to",
+            "paid to",
+            "spent to",
+            "القيمة الكلية للمبالغ المصروفة الى",
+            "القيمة الكلية للمبالغ المصروفة إلى",
+            "المبالغ المصروفة الى",
+            "المبالغ المصروفة إلى",
+            "مبالغ مصروفة الى",
+            "مبالغ مصروفة إلى",
+            "مصروفة الى",
+            "مصروفة إلى",
+            "مدفوعة الى",
+            "مدفوعة إلى",
+            "مدفوع الى",
+            "مدفوع إلى",
+            "صرف الى",
+            "صرف إلى",
+            "الى",
+            "إلى");
+
+        return string.IsNullOrWhiteSpace(value) ? question : value;
+    }
+
+    private static bool IsFixedAssetsByAccountQuestion(string question)
+    {
+        bool hasAssetWord = ContainsAny(
+            question,
+            "fixed asset",
+            "fixed assets",
+            "موجودات",
+            "الموجودات",
+            "اصول",
+            "أصول",
+            "الاصول",
+            "الأصول");
+        bool hasFixedWord = ContainsAny(question, "fixed", "ثابت", "ثابتة", "الثابته", "الثابتة");
+        bool hasAccountBreakdownWord = ContainsAny(
+            question,
+            "account",
+            "accounts",
+            "by account",
+            "detailed",
+            "detail",
+            "حساب",
+            "حسابات",
+            "مفصلة",
+            "تفصيل",
+            "الثلاثية",
+            "الثلاثير",
+            "الثلاثي");
+
+        return hasAssetWord && (hasFixedWord || hasAccountBreakdownWord);
+    }
+
+    private static bool IsPersonPaymentTotalQuestion(string question)
+    {
+        bool hasPaymentWord = ContainsAny(
+            question,
+            "paid",
+            "payment",
+            "payments",
+            "amount paid",
+            "amounts paid",
+            "مبالغ",
+            "المبالغ",
+            "مصروفة",
+            "مصروفه",
+            "مدفوع",
+            "مدفوعة",
+            "صرف");
+        bool hasTotalWord = ContainsAny(
+            question,
+            "total",
+            "sum",
+            "value",
+            "amount",
+            "قيمة",
+            "الكلية",
+            "كلية",
+            "اجمالي",
+            "إجمالي",
+            "مجموع");
+        bool hasPersonTarget = ContainsAny(question, " to ", " الى ", " إلى ", "للسيد", "السيد", "السيح");
+
+        return hasPaymentWord && hasTotalWord && hasPersonTarget;
+    }
+
     private static bool IsExpenseNetValueQuestion(string question)
     {
-        bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "المصروفات");
+        bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "المصروفات", "مصاريف", "المصاريف");
         bool hasAggregateWord = ContainsAny(
             question,
             "how many",
@@ -577,6 +766,8 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "صافي",
             "اجمالي",
             "إجمالي",
+            "كلي",
+            "كلية",
             "مجموع",
             "قيمة",
             "رصيد",
@@ -593,6 +784,10 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "until now",
             "اخر",
             "آخر",
+            "الاخير",
+            "الأخير",
+            "الاخيرة",
+            "الأخيرة",
             "سنة",
             "سنوات",
             "من",
@@ -624,7 +819,46 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             return "last " + arabicMatch.Groups["years"].Value + " years";
         }
 
+        Match arabicWordMatch = Regex.Match(
+            question,
+            @"(?:اخر|آخر|السنوات|للسنوات|سنوات|لمدة)\s+(?<word>الثلاثة|الثلاثاة|ثلاثة|ثلاث|الثلاث|الثلاثه|ثلاثه)\s+(?:سنوات|سنة|اعوام|أعوام|الاخيرة|الأخيرة|الاخير|الأخير)?",
+            RegexOptions.IgnoreCase);
+
+        if (!arabicWordMatch.Success)
+        {
+            arabicWordMatch = Regex.Match(
+                question,
+                @"(?:السنوات|للسنوات|سنوات)\s+(?<word>الثلاثة|الثلاثاة|ثلاثة|ثلاث|الثلاث|الثلاثه|ثلاثه)\s+(?:الاخيرة|الأخيرة|الاخير|الأخير)",
+                RegexOptions.IgnoreCase);
+        }
+
+        if (arabicWordMatch.Success)
+        {
+            int years = ConvertArabicYearWordToNumber(arabicWordMatch.Groups["word"].Value);
+            if (years > 0)
+            {
+                return "last " + years + " years";
+            }
+        }
+
         return string.Empty;
+    }
+
+    private static int ConvertArabicYearWordToNumber(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        string normalized = value.Trim();
+
+        if (ContainsAny(normalized, "ثلاث"))
+        {
+            return 3;
+        }
+
+        return 0;
     }
 
     private static string ExtractFromYearValue(string question)
@@ -722,7 +956,9 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         string cleanedValue = Regex.Replace(value, @"[?.!,;]+$", string.Empty).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(named|called|number|no\.?|id|is)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(invoice\s+number|invoice\s+no\.?|invoice|expense\s+code|employee|person|user|staff|member|file\s+notes|notes|total\s+cost|cost|amount|date|doc\s+number|document\s+number|doc\s+no\.?)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(to|for|mr\.?|mrs\.?|ms\.?)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(رقم\s+الفاتورة|فاتورة|كود\s+المصروف|موظف|شخص|مستخدم|ملاحظات\s+الملف|ملاحظات|بيان\s+الملف|بيان|التكلفة\s+الكلية|اجمالي\s+التكلفة|إجمالي\s+التكلفة|بالإجمالي|التكلفة|بالتكلفة|تكلفة|المبلغ|بالمبلغ|بمبلغ|مبلغ|التاريخ|بالتاريخ|بتاريخ|تاريخ|رقم\s+المستند|المستند\s+رقم|مستند\s+رقم|برقم\s+المستند|رقم\s+السند|السند\s+رقم|سند\s+رقم|برقم\s+السند|رقم\s+الوثيقة|الوثيقة\s+رقم|وثيقة\s+رقم|برقم\s+الوثيقة|رقم\s+الملف|الملف\s+رقم|ملف\s+رقم|برقم\s+الملف|برقم|رقم)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(الى|إلى|ل|لل|السيد|السيح|سيد|دكتور|الدكتور|أستاذ|استاذ)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(please|pls)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(من فضلك|لو سمحت|رجاء)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         return cleanedValue;
@@ -850,6 +1086,20 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("إجمالي المصروفات آخر 3 سنوات", ExpenseChatbotQueryType.ExpenseNetValue),
             Sample("صافي المصروفات من 2023 حتى الآن", ExpenseChatbotQueryType.ExpenseNetValue),
             Sample("رصيد حسابات المصروفات التي تبدأ برقم 3", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("اريد المصاريف الكلية للسنوات الثلاثة الاخيرة", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("اريد المصاريف الكلية للسنوات الثلاثاة الاخير", ExpenseChatbotQueryType.ExpenseNetValue),
+
+            Sample("fixed assets detailed by tertiary accounts for last 3 years", ExpenseChatbotQueryType.FixedAssetsByAccount),
+            Sample("fixed assets by account for last 3 years", ExpenseChatbotQueryType.FixedAssetsByAccount),
+            Sample("مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثير لمدة اخر 3 سنوات", ExpenseChatbotQueryType.FixedAssetsByAccount),
+            Sample("مجموع الموجودات الثابتة مفصلة حسب الحسابات الثلاثية لمدة اخر 3 سنوات", ExpenseChatbotQueryType.FixedAssetsByAccount),
+            Sample("تفصيل الاصول الثابتة حسب الحسابات لمدة آخر 3 سنوات", ExpenseChatbotQueryType.FixedAssetsByAccount),
+
+            Sample("total paid to Hussein Haidar", ExpenseChatbotQueryType.PersonPaymentTotal),
+            Sample("total amounts paid to person Hussein Haidar", ExpenseChatbotQueryType.PersonPaymentTotal),
+            Sample("ما هي القيمة الكلية للمبالغ المصروفة الى السيح حسين حيدر", ExpenseChatbotQueryType.PersonPaymentTotal),
+            Sample("ما هي القيمة الكلية للمبالغ المصروفة إلى السيد حسين حيدر", ExpenseChatbotQueryType.PersonPaymentTotal),
+            Sample("اجمالي المبالغ المدفوعة الى حسين حيدر", ExpenseChatbotQueryType.PersonPaymentTotal),
 
             Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.PersonExpenses),
             Sample("find expenses related to Sarah", ExpenseChatbotQueryType.PersonExpenses),

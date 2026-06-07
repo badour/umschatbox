@@ -52,6 +52,9 @@ These examples are classified automatically:
 - `how many expenses for last 3 years` -> `ExpenseNetValue`, search value `last 3 years`
 - `total expenses from 2023 till now` -> `ExpenseNetValue`, search value `from 2023`
 - `صافي المصروفات من 2023 حتى الآن` -> `ExpenseNetValue`, search value `from 2023`
+- `اريد المصاريف الكلية للسنوات الثلاثة الاخيرة` -> `ExpenseNetValue`, search value `last 3 years`
+- `مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثير لمدة اخر 3 سنوات` -> `FixedAssetsByAccount`, search value `last 3 years`
+- `ما هي القيمة الكلية للمبالغ المصروفة الى السيح حسين حيدر` -> `PersonPaymentTotal`, search value `حسين حيدر`
 - `find file links for receipt.pdf` -> `FileLinks`, search value `receipt.pdf`
 - `ابحث عن ملف رقم المستند 12345` -> `FileLinks`, search value `12345`
 - `ابحث عن المستند رقم 42 لسنة 2024-2025` -> `FileLinks`, search value `42 لسنة 2024-2025`
@@ -71,6 +74,13 @@ For accounting summary questions like `how many expenses for last 3 years`, the 
 account code starts with `3` and uses a period from January 1 of the calculated start year until today.
 For example, in 2026, `last 3 years` starts from `2023-01-01`.
 
+For fixed-assets analysis questions like `مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثير لمدة اخر 3 سنوات`,
+the chatbot runs `dbo.Chatbot_GetFixedAssetsByAccount`. The SQL template groups fixed assets by tertiary
+account code and returns debit, credit, net value, and transaction count.
+
+For person payment analysis questions like `ما هي القيمة الكلية للمبالغ المصروفة الى السيح حسين حيدر`,
+the chatbot runs `dbo.Chatbot_GetPersonPaymentTotal` after extracting the name `حسين حيدر`.
+
 ## Configuration
 
 By default for `adminmodeluniversitiy`, the chatbot expects a connection string named `generalUniversityDB`
@@ -80,6 +90,8 @@ and these stored procedures:
 - `dbo.Chatbot_GetInvoiceExpenseCodes @InvoiceNumber`
 - `dbo.Chatbot_GetPersonExpenses @PersonName`
 - `dbo.Chatbot_GetExpenseNetValue @SearchText`
+- `dbo.Chatbot_GetFixedAssetsByAccount @SearchText`
+- `dbo.Chatbot_GetPersonPaymentTotal @SearchText`
 
 You can override the connection string name, stored procedure names, parameter names, command timeout,
 max displayed rows, and ML.NET intent confidence threshold through `appSettings` in `Web.config`.

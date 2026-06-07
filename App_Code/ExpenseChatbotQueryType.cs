@@ -3,5 +3,7 @@ public enum ExpenseChatbotQueryType
     FileLinks,
     InvoiceExpenseCode,
     PersonExpenses,
-    ExpenseNetValue
+    ExpenseNetValue,
+    FixedAssetsByAccount,
+    PersonPaymentTotal
 }

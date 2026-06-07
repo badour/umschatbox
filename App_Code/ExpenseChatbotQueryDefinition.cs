@@ -105,6 +105,34 @@ public sealed class ExpenseChatbotQueryDefinition
                     "ExpenseChatbot.ExpenseNetValue.ParameterName",
                     "@SearchText");
 
+            case ExpenseChatbotQueryType.FixedAssetsByAccount:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze fixed assets by account",
+                    "Period or natural-language fixed assets question",
+                    "Example: مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثية لمدة اخر 3 سنوات",
+                    "Enter a period or ask for fixed assets grouped by account.",
+                    "I calculated {0} fixed assets analysis result(s).",
+                    "I could not calculate fixed assets analysis for that period.",
+                    "ExpenseChatbot.FixedAssetsByAccount.StoredProcedure",
+                    "dbo.Chatbot_GetFixedAssetsByAccount",
+                    "ExpenseChatbot.FixedAssetsByAccount.ParameterName",
+                    "@SearchText");
+
+            case ExpenseChatbotQueryType.PersonPaymentTotal:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze paid amounts by person",
+                    "Person name or natural-language payment question",
+                    "Example: ما هي القيمة الكلية للمبالغ المصروفة الى حسين حيدر",
+                    "Enter a person name or ask for total paid amounts to a person.",
+                    "I calculated {0} person payment analysis result(s).",
+                    "I could not calculate paid amounts for that person.",
+                    "ExpenseChatbot.PersonPaymentTotal.StoredProcedure",
+                    "dbo.Chatbot_GetPersonPaymentTotal",
+                    "ExpenseChatbot.PersonPaymentTotal.ParameterName",
+                    "@SearchText");
+
             default:
                 throw new ArgumentOutOfRangeException("queryType");
         }

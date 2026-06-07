@@ -185,6 +185,9 @@
                         <strong>what is the expense code for invoice INV-10045</strong>,
                         <strong>find file links for receipt.pdf</strong>,
                         <strong>how many expenses for last 3 years</strong>,
+                        <strong>اريد المصاريف الكلية للسنوات الثلاثة الاخيرة</strong>,
+                        <strong>مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثير لمدة اخر 3 سنوات</strong>,
+                        <strong>ما هي القيمة الكلية للمبالغ المصروفة الى حسين حيدر</strong>,
                         <strong>ابحث عن ملف رقم المستند 12345</strong>,
                         <strong>ابحث عن المستند رقم 42 لسنة 2024-2025</strong>,
                         <strong>اعرض الملفات بالتكلفة 1500</strong>.

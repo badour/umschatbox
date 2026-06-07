@@ -196,3 +196,129 @@ BEGIN
       AND t.TransactionDate < DATEADD(DAY, 1, @EndDate);
 END;
 GO
+
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetFixedAssetsByAccount
+    @SearchText NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @NormalizedSearch NVARCHAR(200) = LOWER(LTRIM(RTRIM(ISNULL(@SearchText, N''))));
+    DECLARE @CurrentYear INT = YEAR(GETDATE());
+    DECLARE @StartYear INT = NULL;
+    DECLARE @StartDate DATE;
+    DECLARE @EndDate DATE = CAST(GETDATE() AS DATE);
+    DECLARE @Years INT = NULL;
+
+    -- Supports: last 3 years / اخر 3 سنوات.
+    IF PATINDEX('%last [0-9]% year%', @NormalizedSearch) > 0
+    BEGIN
+        SET @Years = TRY_CONVERT(INT, SUBSTRING(
+            @NormalizedSearch,
+            PATINDEX('%last [0-9]%', @NormalizedSearch) + LEN('last '),
+            2));
+    END;
+
+    IF @Years IS NULL AND PATINDEX(N'%اخر [0-9]%', @NormalizedSearch) > 0
+    BEGIN
+        SET @Years = TRY_CONVERT(INT, SUBSTRING(
+            @NormalizedSearch,
+            PATINDEX(N'%اخر [0-9]%', @NormalizedSearch) + LEN(N'اخر '),
+            2));
+    END;
+
+    IF @Years IS NULL AND PATINDEX(N'%آخر [0-9]%', @NormalizedSearch) > 0
+    BEGIN
+        SET @Years = TRY_CONVERT(INT, SUBSTRING(
+            @NormalizedSearch,
+            PATINDEX(N'%آخر [0-9]%', @NormalizedSearch) + LEN(N'آخر '),
+            2));
+    END;
+
+    IF @Years IS NOT NULL AND @Years > 0
+    BEGIN
+        SET @StartYear = @CurrentYear - @Years;
+    END;
+
+    IF @StartYear IS NULL
+    BEGIN
+        SELECT @StartYear = TRY_CONVERT(INT, value)
+        FROM STRING_SPLIT(REPLACE(REPLACE(@NormalizedSearch, '-', ' '), '/', ' '), ' ')
+        WHERE TRY_CONVERT(INT, value) BETWEEN 1900 AND 2099;
+    END;
+
+    IF @StartYear IS NULL
+    BEGIN
+        SET @StartYear = @CurrentYear - 3;
+    END;
+
+    SET @StartDate = DATEFROMPARTS(@StartYear, 1, 1);
+
+    /*
+        Replace these sample table/column names with your real accounting schema.
+
+        Expected analysis:
+        - Fixed assets only.
+        - Group by tertiary account. In this template, tertiary account = first 3 digits of AccountCode.
+        - Net value usually equals SUM(Debit - Credit).
+
+        Example columns used below:
+        dbo.AccountTransactions:
+            TransactionDate, AccountCode, DebitAmount, CreditAmount
+        dbo.Accounts:
+            AccountCode, AccountName, AccountType
+    */
+    SELECT
+        @StartDate AS PeriodStart,
+        @EndDate AS PeriodEnd,
+        LEFT(t.AccountCode, 3) AS TertiaryAccountCode,
+        MAX(a.AccountName) AS AccountName,
+        COUNT_BIG(*) AS TransactionCount,
+        SUM(ISNULL(t.DebitAmount, 0)) AS TotalDebit,
+        SUM(ISNULL(t.CreditAmount, 0)) AS TotalCredit,
+        SUM(ISNULL(t.DebitAmount, 0) - ISNULL(t.CreditAmount, 0)) AS NetFixedAssetsValue
+    FROM dbo.AccountTransactions AS t
+    INNER JOIN dbo.Accounts AS a
+        ON a.AccountCode = t.AccountCode
+    WHERE t.TransactionDate >= @StartDate
+      AND t.TransactionDate < DATEADD(DAY, 1, @EndDate)
+      AND (
+            -- Best option: use your real fixed-asset account flag/type.
+            a.AccountType = N'FixedAsset'
+            -- Or replace with the fixed-assets account prefix used in your chart of accounts.
+            OR t.AccountCode LIKE '12%'
+      )
+    GROUP BY LEFT(t.AccountCode, 3)
+    ORDER BY TertiaryAccountCode;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetPersonPaymentTotal
+    @SearchText NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @PersonName NVARCHAR(200) = LTRIM(RTRIM(ISNULL(@SearchText, N'')));
+
+    /*
+        Replace these sample table/column names with your real payment/expense schema.
+
+        Expected analysis:
+        - Match the target person/payee by display name.
+        - Return count, total debit/payment amount, and first/last payment date.
+
+        Example columns used below:
+        dbo.PaymentTransactions:
+            PaymentDate, PayeeName, Amount, AccountCode, Description
+    */
+    SELECT
+        @PersonName AS SearchName,
+        COUNT_BIG(*) AS PaymentCount,
+        MIN(p.PaymentDate) AS FirstPaymentDate,
+        MAX(p.PaymentDate) AS LastPaymentDate,
+        SUM(ISNULL(p.Amount, 0)) AS TotalPaidAmount
+    FROM dbo.PaymentTransactions AS p
+    WHERE p.PayeeName LIKE N'%' + @PersonName + N'%';
+END;
+GO
