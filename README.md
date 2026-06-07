@@ -13,10 +13,10 @@ value, and parameterized SQL stored procedure calls through ADO.NET to query the
 Example:
 
 ```text
-User: show me expenses for Ahmed
-Intent detected by ML.NET: PersonExpenses
-Search value extracted by rules: Ahmed
-SQL procedure called: dbo.Chatbot_GetPersonExpenses @PersonName = 'Ahmed'
+User: how many expenses for last 3 years
+Intent detected: ExpenseNetValue
+Search value extracted by rules: last 3 years
+SQL procedure called: dbo.Chatbot_GetExpenseNetValue @SearchText = 'last 3 years'
 ```
 
 ## Files
@@ -49,6 +49,9 @@ These examples are classified automatically:
 - `show me expenses for Ahmed` -> `PersonExpenses`, search value `Ahmed`
 - `list expenses submitted by employee Sara` -> `PersonExpenses`, search value `Sara`
 - `what is the expense code for invoice INV-10045` -> `InvoiceExpenseCode`, search value `INV-10045`
+- `how many expenses for last 3 years` -> `ExpenseNetValue`, search value `last 3 years`
+- `total expenses from 2023 till now` -> `ExpenseNetValue`, search value `from 2023`
+- `صافي المصروفات من 2023 حتى الآن` -> `ExpenseNetValue`, search value `from 2023`
 - `find file links for receipt.pdf` -> `FileLinks`, search value `receipt.pdf`
 - `ابحث عن ملف رقم المستند 12345` -> `FileLinks`, search value `12345`
 - `ابحث عن المستند رقم 42 لسنة 2024-2025` -> `FileLinks`, search value `42 لسنة 2024-2025`
@@ -63,6 +66,11 @@ columns you add to `dbo.Chatbot_GetFileLinks`.
 For phrases like `ابحث عن المستند رقم 42 لسنة 2024-2025`, the parser sends `42 لسنة 2024-2025`;
 the SQL template splits it into document number `42` and document/academic year `2024-2025`.
 
+For accounting summary questions like `how many expenses for last 3 years`, the chatbot runs
+`dbo.Chatbot_GetExpenseNetValue`. The SQL template calculates net expense value for accounts whose
+account code starts with `3` and uses a period from January 1 of the calculated start year until today.
+For example, in 2026, `last 3 years` starts from `2023-01-01`.
+
 ## Configuration
 
 By default for `adminmodeluniversitiy`, the chatbot expects a connection string named `generalUniversityDB`
@@ -71,6 +79,7 @@ and these stored procedures:
 - `dbo.Chatbot_GetFileLinks @SearchText`
 - `dbo.Chatbot_GetInvoiceExpenseCodes @InvoiceNumber`
 - `dbo.Chatbot_GetPersonExpenses @PersonName`
+- `dbo.Chatbot_GetExpenseNetValue @SearchText`
 
 You can override the connection string name, stored procedure names, parameter names, command timeout,
 max displayed rows, and ML.NET intent confidence threshold through `appSettings` in `Web.config`.

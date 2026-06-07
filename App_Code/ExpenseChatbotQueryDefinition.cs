@@ -91,6 +91,20 @@ public sealed class ExpenseChatbotQueryDefinition
                     "ExpenseChatbot.PersonExpenses.ParameterName",
                     "@PersonName");
 
+            case ExpenseChatbotQueryType.ExpenseNetValue:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Calculate expense net value",
+                    "Period or natural-language expense summary question",
+                    "Example: how many expenses for last 3 years",
+                    "Enter a period such as 'last 3 years' or ask for total/net expenses.",
+                    "I calculated {0} expense summary result(s).",
+                    "I could not calculate expense net value for that period.",
+                    "ExpenseChatbot.ExpenseNetValue.StoredProcedure",
+                    "dbo.Chatbot_GetExpenseNetValue",
+                    "ExpenseChatbot.ExpenseNetValue.ParameterName",
+                    "@SearchText");
+
             default:
                 throw new ArgumentOutOfRangeException("queryType");
         }

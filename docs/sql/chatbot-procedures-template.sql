@@ -104,3 +104,95 @@ BEGIN
     ORDER BY e.ExpenseDate DESC;
 END;
 GO
+
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetExpenseNetValue
+    @SearchText NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @NormalizedSearch NVARCHAR(200) = LOWER(LTRIM(RTRIM(ISNULL(@SearchText, N''))));
+    DECLARE @CurrentYear INT = YEAR(GETDATE());
+    DECLARE @StartYear INT = NULL;
+    DECLARE @StartDate DATE;
+    DECLARE @EndDate DATE = CAST(GETDATE() AS DATE);
+    DECLARE @Years INT = NULL;
+
+    -- Supports English/Arabic phrases like:
+    -- last 3 years
+    -- from 2023
+    -- اخر 3 سنوات
+    -- صافي المصروفات من 2023 حتى الآن
+    IF PATINDEX('%last [0-9]% year%', @NormalizedSearch) > 0
+    BEGIN
+        SET @Years = TRY_CONVERT(INT, SUBSTRING(
+            @NormalizedSearch,
+            PATINDEX('%last [0-9]%', @NormalizedSearch) + LEN('last '),
+            2));
+    END;
+
+    IF @Years IS NULL AND PATINDEX(N'%اخر [0-9]%', @NormalizedSearch) > 0
+    BEGIN
+        SET @Years = TRY_CONVERT(INT, SUBSTRING(
+            @NormalizedSearch,
+            PATINDEX(N'%اخر [0-9]%', @NormalizedSearch) + LEN(N'اخر '),
+            2));
+    END;
+
+    IF @Years IS NULL AND PATINDEX(N'%آخر [0-9]%', @NormalizedSearch) > 0
+    BEGIN
+        SET @Years = TRY_CONVERT(INT, SUBSTRING(
+            @NormalizedSearch,
+            PATINDEX(N'%آخر [0-9]%', @NormalizedSearch) + LEN(N'آخر '),
+            2));
+    END;
+
+    IF @Years IS NOT NULL AND @Years > 0
+    BEGIN
+        -- Example in 2026: last 3 years => from 2023-01-01 until today.
+        SET @StartYear = @CurrentYear - @Years;
+    END;
+
+    IF @StartYear IS NULL
+    BEGIN
+        SELECT @StartYear = TRY_CONVERT(INT, value)
+        FROM STRING_SPLIT(REPLACE(REPLACE(@NormalizedSearch, '-', ' '), '/', ' '), ' ')
+        WHERE TRY_CONVERT(INT, value) BETWEEN 1900 AND 2099;
+    END;
+
+    IF @StartYear IS NULL
+    BEGIN
+        -- Default behavior for a generic question like "total expenses".
+        SET @StartYear = @CurrentYear - 3;
+    END;
+
+    SET @StartDate = DATEFROMPARTS(@StartYear, 1, 1);
+
+    /*
+        Replace these sample table/column names with your real accounting schema.
+
+        Expected logic:
+        - Expense accounts start with account code 3.
+        - Use transaction date between @StartDate and today.
+        - Net expense value usually equals SUM(Debit - Credit).
+
+        Example columns used below:
+        dbo.AccountTransactions:
+            TransactionDate, AccountCode, DebitAmount, CreditAmount
+        dbo.Accounts:
+            AccountCode, AccountName
+    */
+    SELECT
+        @StartDate AS PeriodStart,
+        @EndDate AS PeriodEnd,
+        N'3' AS ExpenseAccountPrefix,
+        COUNT_BIG(*) AS TransactionCount,
+        SUM(ISNULL(t.DebitAmount, 0) - ISNULL(t.CreditAmount, 0)) AS NetExpenseValue
+    FROM dbo.AccountTransactions AS t
+    INNER JOIN dbo.Accounts AS a
+        ON a.AccountCode = t.AccountCode
+    WHERE t.AccountCode LIKE '3%'
+      AND t.TransactionDate >= @StartDate
+      AND t.TransactionDate < DATEADD(DAY, 1, @EndDate);
+END;
+GO

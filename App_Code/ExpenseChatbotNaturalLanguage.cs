@@ -59,19 +59,26 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         if (looksNaturalLanguage)
         {
-            ExpenseChatbotIntentResult intent = _classifier.Classify(normalizedQuestion);
-            confidence = intent.Confidence;
-
-            if (intent.IsConfident)
+            if (IsExpenseNetValueQuestion(normalizedQuestion))
             {
-                queryType = intent.QueryType;
+                queryType = ExpenseChatbotQueryType.ExpenseNetValue;
             }
             else
             {
-                ExpenseChatbotQueryType keywordQueryType;
-                if (TryClassifyByKeywords(normalizedQuestion, out keywordQueryType))
+                ExpenseChatbotIntentResult intent = _classifier.Classify(normalizedQuestion);
+                confidence = intent.Confidence;
+
+                if (intent.IsConfident)
                 {
-                    queryType = keywordQueryType;
+                    queryType = intent.QueryType;
+                }
+                else
+                {
+                    ExpenseChatbotQueryType keywordQueryType;
+                    if (TryClassifyByKeywords(normalizedQuestion, out keywordQueryType))
+                    {
+                        queryType = keywordQueryType;
+                    }
                 }
             }
         }
@@ -107,6 +114,9 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "get",
                 "list",
                 "what",
+                "how many",
+                "hoe many",
+                "how much",
                 "where",
                 "which",
                 "give",
@@ -114,6 +124,15 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "search",
                 "expense",
                 "expenses",
+                "net",
+                "value",
+                "total",
+                "balance",
+                "account",
+                "accounts",
+                "last",
+                "year",
+                "years",
                 "invoice",
                 "file",
                 "link",
@@ -141,6 +160,17 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "وثائق",
                 "مصروف",
                 "مصروفات",
+                "صافي",
+                "اجمالي",
+                "إجمالي",
+                "قيمة",
+                "رصيد",
+                "حساب",
+                "حسابات",
+                "اخر",
+                "آخر",
+                "سنة",
+                "سنوات",
                 "فاتورة",
                 "فواتير",
                 "شخص",
@@ -156,6 +186,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
     private static bool TryClassifyByKeywords(string question, out ExpenseChatbotQueryType queryType)
     {
         string normalized = question.ToLowerInvariant();
+
+        if (IsExpenseNetValueQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.ExpenseNetValue;
+            return true;
+        }
 
         if (ContainsAny(
             normalized,
@@ -279,6 +315,9 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
             case ExpenseChatbotQueryType.PersonExpenses:
                 return ExtractPersonSearchValue(question);
+
+            case ExpenseChatbotQueryType.ExpenseNetValue:
+                return ExtractExpenseNetValueSearchValue(question);
 
             default:
                 return question;
@@ -477,6 +516,142 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         return value;
     }
 
+    private static string ExtractExpenseNetValueSearchValue(string question)
+    {
+        string value = ExtractLastYearsValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        value = ExtractFromYearValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        value = ExtractAfterPhrase(
+            question,
+            "expense net value for",
+            "net value of expenses for",
+            "net expenses for",
+            "total expenses for",
+            "how many expenses for",
+            "hoe many expenses for",
+            "how much expenses for",
+            "expenses for",
+            "صافي المصروفات عن",
+            "صافي المصروفات ل",
+            "اجمالي المصروفات عن",
+            "إجمالي المصروفات عن",
+            "اجمالي المصروفات ل",
+            "إجمالي المصروفات ل",
+            "مصروفات اخر",
+            "مصروفات آخر",
+            "المصروفات عن",
+            "المصروفات ل");
+
+        return string.IsNullOrWhiteSpace(value) ? question : value;
+    }
+
+    private static bool IsExpenseNetValueQuestion(string question)
+    {
+        bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "المصروفات");
+        bool hasAggregateWord = ContainsAny(
+            question,
+            "how many",
+            "hoe many",
+            "how much",
+            "total",
+            "sum",
+            "net",
+            "value",
+            "balance",
+            "amount",
+            "account start",
+            "account starts",
+            "account begin",
+            "starts with 3",
+            "start with 3",
+            "account 3",
+            "صافي",
+            "اجمالي",
+            "إجمالي",
+            "مجموع",
+            "قيمة",
+            "رصيد",
+            "حساب",
+            "حسابات");
+        bool hasPeriodWord = ContainsAny(
+            question,
+            "last",
+            "past",
+            "year",
+            "years",
+            "from",
+            "till now",
+            "until now",
+            "اخر",
+            "آخر",
+            "سنة",
+            "سنوات",
+            "من",
+            "حتى الان",
+            "حتى الآن");
+
+        return hasExpenseWord && (hasAggregateWord || hasPeriodWord);
+    }
+
+    private static string ExtractLastYearsValue(string question)
+    {
+        Match englishMatch = Regex.Match(
+            question,
+            @"\b(?:last|past)\s+(?<years>\d+)\s+years?\b",
+            RegexOptions.IgnoreCase);
+
+        if (englishMatch.Success)
+        {
+            return "last " + englishMatch.Groups["years"].Value + " years";
+        }
+
+        Match arabicMatch = Regex.Match(
+            question,
+            @"(?:اخر|آخر)\s+(?<years>\d+)\s+(?:سنة|سنوات|اعوام|أعوام)",
+            RegexOptions.IgnoreCase);
+
+        if (arabicMatch.Success)
+        {
+            return "last " + arabicMatch.Groups["years"].Value + " years";
+        }
+
+        return string.Empty;
+    }
+
+    private static string ExtractFromYearValue(string question)
+    {
+        Match englishMatch = Regex.Match(
+            question,
+            @"\bfrom\s+(?<year>20\d{2}|19\d{2})\b",
+            RegexOptions.IgnoreCase);
+
+        if (englishMatch.Success)
+        {
+            return "from " + englishMatch.Groups["year"].Value;
+        }
+
+        Match arabicMatch = Regex.Match(
+            question,
+            @"\bمن\s+(?<year>20\d{2}|19\d{2})\b",
+            RegexOptions.IgnoreCase);
+
+        if (arabicMatch.Success)
+        {
+            return "from " + arabicMatch.Groups["year"].Value;
+        }
+
+        return string.Empty;
+    }
+
     private static string ExtractAfterPhrase(string question, params string[] phrases)
     {
         if (string.IsNullOrWhiteSpace(question))
@@ -662,6 +837,19 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("ما هو كود المصروف للفاتورة INV-10045", ExpenseChatbotQueryType.InvoiceExpenseCode),
             Sample("اعرض كود الفاتورة", ExpenseChatbotQueryType.InvoiceExpenseCode),
             Sample("ابحث عن رقم الفاتورة 12345", ExpenseChatbotQueryType.InvoiceExpenseCode),
+
+            Sample("how many expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("hoe many expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("how much expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("net value of expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("total expenses from 2023 till now", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("calculate expense account balance starting with 3", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("show net expenses for accounts starting with 3", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("what is the expenses value from 2023", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("اجمالي المصروفات اخر 3 سنوات", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("إجمالي المصروفات آخر 3 سنوات", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("صافي المصروفات من 2023 حتى الآن", ExpenseChatbotQueryType.ExpenseNetValue),
+            Sample("رصيد حسابات المصروفات التي تبدأ برقم 3", ExpenseChatbotQueryType.ExpenseNetValue),
 
             Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.PersonExpenses),
             Sample("find expenses related to Sarah", ExpenseChatbotQueryType.PersonExpenses),
