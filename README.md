@@ -95,6 +95,9 @@ the chatbot runs `dbo.Chatbot_GetPersonPaymentTotal` after extracting the name `
 After a stored procedure returns data, `ExpenseChatbotReasoningEngine` inspects the `DataTable` before
 the rows are shown. It can add insights such as:
 
+- file-link coverage, document type frequency, distinct document count, and newest file date;
+- invoice expense-code count, repeated codes, status distribution, and invoice amount totals;
+- person-expense totals, latest activity, and most frequent expense categories/codes;
 - numeric totals, averages, minimums, and maximums;
 - date ranges and year-over-year direction when date and amount columns are present;
 - largest account/category/person by value or count;

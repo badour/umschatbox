@@ -21,6 +21,7 @@ public static class ExpenseChatbotReasoningEngine
 
         insights.Add(BuildIntro(queryType, results.Rows.Count, totalRowCount));
 
+        AddTypeSpecificInsights(insights, queryType, results, numericProfiles, dateProfile);
         AddAggregateInsights(insights, queryType, numericProfiles);
         AddDateRangeInsight(insights, dateProfile);
         AddTrendInsight(insights, results, numericProfiles, dateProfile);
@@ -52,8 +53,160 @@ public static class ExpenseChatbotReasoningEngine
             case ExpenseChatbotQueryType.PersonPaymentTotal:
                 return "I treated this as a payee/person payment analysis and reviewed " + scope + " for total paid amount and date coverage.";
 
+            case ExpenseChatbotQueryType.FileLinks:
+                return "I treated this as a file/document lookup and reviewed " + scope + " for link availability, document types, and recency.";
+
+            case ExpenseChatbotQueryType.InvoiceExpenseCode:
+                return "I treated this as an invoice expense-code lookup and reviewed " + scope + " for codes, amounts, and status patterns.";
+
+            case ExpenseChatbotQueryType.PersonExpenses:
+                return "I treated this as a person-expense lookup and reviewed " + scope + " for spend totals, date coverage, and category patterns.";
+
             default:
                 return "I reviewed " + scope + " before listing them, looking for useful totals, dates, and unusual values.";
+        }
+    }
+
+    private static void AddTypeSpecificInsights(
+        List<string> insights,
+        ExpenseChatbotQueryType queryType,
+        DataTable results,
+        List<NumericColumnProfile> numericProfiles,
+        DateColumnProfile dateProfile)
+    {
+        switch (queryType)
+        {
+            case ExpenseChatbotQueryType.FileLinks:
+                AddFileLinkInsights(insights, results, dateProfile);
+                break;
+
+            case ExpenseChatbotQueryType.InvoiceExpenseCode:
+                AddInvoiceExpenseCodeInsights(insights, results, numericProfiles);
+                break;
+
+            case ExpenseChatbotQueryType.PersonExpenses:
+                AddPersonExpenseInsights(insights, results, numericProfiles, dateProfile);
+                break;
+        }
+    }
+
+    private static void AddFileLinkInsights(List<string> insights, DataTable results, DateColumnProfile dateProfile)
+    {
+        DataColumn linkColumn = GetFirstColumnByName(results, "link", "url", "path", "filepath", "file_path");
+
+        if (linkColumn != null)
+        {
+            int rowsWithLinks = CountNonEmptyValues(results, linkColumn);
+            insights.Add(string.Format(
+                "{0} of {1} row(s) include a file/link value in {2}.",
+                rowsWithLinks,
+                results.Rows.Count,
+                FormatColumnName(linkColumn.ColumnName)));
+        }
+
+        DataColumn documentTypeColumn = GetFirstColumnByName(results, "doctype", "doc type", "documenttype", "filetype", "type");
+        if (documentTypeColumn != null)
+        {
+            AddTopValueInsight(
+                insights,
+                results,
+                documentTypeColumn,
+                "The most common document type is '{0}' with {1} file(s).");
+        }
+
+        DataColumn documentNumberColumn = GetFirstColumnByName(results, "docnum", "doc num", "documentnumber", "docnumber", "number");
+        if (documentNumberColumn != null)
+        {
+            int distinctDocumentCount = CountDistinctValues(results, documentNumberColumn);
+            insights.Add(string.Format(
+                "The result covers {0} distinct document number(s).",
+                distinctDocumentCount));
+        }
+
+        if (dateProfile != null && dateProfile.Values.Count > 0)
+        {
+            insights.Add(string.Format(
+                "The newest matching file/document date is {0}.",
+                dateProfile.Max.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+        }
+    }
+
+    private static void AddInvoiceExpenseCodeInsights(List<string> insights, DataTable results, List<NumericColumnProfile> numericProfiles)
+    {
+        DataColumn expenseCodeColumn = GetFirstColumnByName(results, "expensecode", "expense code", "code");
+        if (expenseCodeColumn != null)
+        {
+            int distinctCodeCount = CountDistinctValues(results, expenseCodeColumn);
+            insights.Add(string.Format(
+                "I found {0} distinct expense code(s) in the invoice results.",
+                distinctCodeCount));
+
+            AddTopValueInsight(
+                insights,
+                results,
+                expenseCodeColumn,
+                "The most repeated expense code is '{0}' with {1} row(s).");
+        }
+
+        DataColumn statusColumn = GetFirstColumnByName(results, "status", "state");
+        if (statusColumn != null)
+        {
+            AddTopValueInsight(
+                insights,
+                results,
+                statusColumn,
+                "The most common invoice status is '{0}' with {1} row(s).");
+        }
+
+        NumericColumnProfile amountProfile = GetBestAmountProfile(numericProfiles);
+        if (amountProfile != null)
+        {
+            insights.Add(string.Format(
+                "The invoice-related {0} total is {1}.",
+                FormatColumnName(amountProfile.Column.ColumnName),
+                FormatDecimal(amountProfile.Sum)));
+        }
+    }
+
+    private static void AddPersonExpenseInsights(
+        List<string> insights,
+        DataTable results,
+        List<NumericColumnProfile> numericProfiles,
+        DateColumnProfile dateProfile)
+    {
+        DataColumn personColumn = GetFirstColumnByName(results, "person", "displayname", "employee", "username", "name");
+        if (personColumn != null)
+        {
+            int distinctPersonCount = CountDistinctValues(results, personColumn);
+            insights.Add(string.Format(
+                "The result includes expense rows for {0} distinct person value(s).",
+                distinctPersonCount));
+        }
+
+        NumericColumnProfile amountProfile = GetBestAmountProfile(numericProfiles);
+        if (amountProfile != null)
+        {
+            insights.Add(string.Format(
+                "For this person search, {0} totals {1} across the returned rows.",
+                FormatColumnName(amountProfile.Column.ColumnName),
+                FormatDecimal(amountProfile.Sum)));
+        }
+
+        DataColumn categoryColumn = GetFirstColumnByName(results, "expensecode", "expense code", "category", "description", "doctype");
+        if (categoryColumn != null)
+        {
+            AddTopValueInsight(
+                insights,
+                results,
+                categoryColumn,
+                "The most frequent expense category/code is '{0}' with {1} row(s).");
+        }
+
+        if (dateProfile != null && dateProfile.Values.Count > 0)
+        {
+            insights.Add(string.Format(
+                "The latest expense activity in these rows is {0}.",
+                dateProfile.Max.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
         }
     }
 
@@ -402,6 +555,99 @@ public static class ExpenseChatbotReasoningEngine
             .FirstOrDefault();
     }
 
+    private static NumericColumnProfile GetBestAmountProfile(List<NumericColumnProfile> numericProfiles)
+    {
+        return numericProfiles
+            .OrderByDescending(profile => GetAmountPriority(profile.Column.ColumnName))
+            .ThenBy(profile => profile.Column.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private static DataColumn GetFirstColumnByName(DataTable results, params string[] nameParts)
+    {
+        if (results == null || nameParts == null)
+        {
+            return null;
+        }
+
+        foreach (DataColumn column in results.Columns)
+        {
+            string normalizedColumnName = NormalizeColumnName(column.ColumnName);
+
+            for (int index = 0; index < nameParts.Length; index++)
+            {
+                string normalizedNamePart = NormalizeColumnName(nameParts[index]);
+                if (!string.IsNullOrWhiteSpace(normalizedNamePart) && normalizedColumnName.Contains(normalizedNamePart))
+                {
+                    return column;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static void AddTopValueInsight(List<string> insights, DataTable results, DataColumn column, string messageTemplate)
+    {
+        Dictionary<string, int> counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (DataRow row in results.Rows)
+        {
+            string value = Convert.ToString(row[column], CultureInfo.CurrentCulture);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (!counts.ContainsKey(value))
+            {
+                counts[value] = 0;
+            }
+
+            counts[value]++;
+        }
+
+        if (counts.Count == 0)
+        {
+            return;
+        }
+
+        KeyValuePair<string, int> topValue = counts.OrderByDescending(pair => pair.Value).First();
+        insights.Add(string.Format(messageTemplate, topValue.Key, topValue.Value));
+    }
+
+    private static int CountNonEmptyValues(DataTable results, DataColumn column)
+    {
+        int count = 0;
+
+        foreach (DataRow row in results.Rows)
+        {
+            string value = Convert.ToString(row[column], CultureInfo.CurrentCulture);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountDistinctValues(DataTable results, DataColumn column)
+    {
+        HashSet<string> values = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (DataRow row in results.Rows)
+        {
+            string value = Convert.ToString(row[column], CultureInfo.CurrentCulture);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                values.Add(value);
+            }
+        }
+
+        return values.Count;
+    }
+
     private static bool TryGetDecimal(object value, out decimal result)
     {
         result = 0M;
@@ -573,6 +819,14 @@ public static class ExpenseChatbotReasoningEngine
         }
 
         return columnName.Replace("_", " ");
+    }
+
+    private static string NormalizeColumnName(string columnName)
+    {
+        return (columnName ?? string.Empty)
+            .Replace("_", string.Empty)
+            .Replace(" ", string.Empty)
+            .ToLowerInvariant();
     }
 
     private static string FormatDecimal(decimal value)
