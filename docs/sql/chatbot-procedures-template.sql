@@ -155,9 +155,12 @@ BEGIN
 
     IF @StartYear IS NULL
     BEGIN
-        SELECT @StartYear = TRY_CONVERT(INT, value)
-        FROM STRING_SPLIT(REPLACE(REPLACE(@NormalizedSearch, '-', ' '), '/', ' '), ' ')
-        WHERE TRY_CONVERT(INT, value) BETWEEN 1900 AND 2099;
+        DECLARE @YearPosition INT = PATINDEX('%[12][0-9][0-9][0-9]%', @NormalizedSearch);
+
+        IF @YearPosition > 0
+        BEGIN
+            SET @StartYear = TRY_CONVERT(INT, SUBSTRING(@NormalizedSearch, @YearPosition, 4));
+        END;
     END;
 
     IF @StartYear IS NULL
@@ -242,9 +245,12 @@ BEGIN
 
     IF @StartYear IS NULL
     BEGIN
-        SELECT @StartYear = TRY_CONVERT(INT, value)
-        FROM STRING_SPLIT(REPLACE(REPLACE(@NormalizedSearch, '-', ' '), '/', ' '), ' ')
-        WHERE TRY_CONVERT(INT, value) BETWEEN 1900 AND 2099;
+        DECLARE @YearPosition INT = PATINDEX('%[12][0-9][0-9][0-9]%', @NormalizedSearch);
+
+        IF @YearPosition > 0
+        BEGIN
+            SET @StartYear = TRY_CONVERT(INT, SUBSTRING(@NormalizedSearch, @YearPosition, 4));
+        END;
     END;
 
     IF @StartYear IS NULL
