@@ -155,7 +155,7 @@
 
                 <div class="chatbot-body">
                     <div class="chatbot-thinking-note">
-                        No buttons are needed. The chatbot decides whether your request is about revenues, expenses, accounting categories, fixed assets, buildings, or payments.
+                        No buttons are needed. The chatbot decides whether your request is about account-related expenses, fixed assets, buildings, or total expenses.
                     </div>
 
                     <div id="botMessage" runat="server" class="chatbot-message">
@@ -164,11 +164,10 @@
                     </div>
 
                     <div class="chatbot-examples">
-                        Examples: <strong>ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟</strong>,
-                        <strong>المصاريف المتعلقة بالصيانة السيارات 3314</strong>,
+                        Examples: <strong>المصاريف المتعلقة بالصيانة السيارات 3314</strong>,
                         <strong>المجموع الكلي للموجودات الثابتة للكلية لكل السنوات</strong>,
                         <strong>المجموع الكلي للمباني للكلية لكل الاعوام</strong>,
-                        <strong>اريد المصاريف الكلية للسنوات الثلاثة الاخيرة</strong>,
+                        <strong>المجموع الكلي للمصروفات لشخص احمد</strong>,
                         <strong>المجموع الكلي للمصروفات لتبويب محاسبي 3314</strong>.
                     </div>
 
@@ -180,12 +179,6 @@
                         <asp:Button ID="btnSend" runat="server" CssClass="chatbot-send" Text="Ask" OnClick="btnSend_Click" />
                     </div>
 
-                    <asp:GridView ID="grdResults" runat="server"
-                        AutoGenerateColumns="true"
-                        CssClass="chatbot-results"
-                        EmptyDataText="No results to show."
-                        GridLines="None"
-                        OnRowDataBound="grdResults_RowDataBound" />
                 </div>
             </div>
         </div>
