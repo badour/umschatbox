@@ -192,6 +192,65 @@ During local setup only, you can temporarily enable detailed errors:
 
 Set it back to `false` before production use.
 
+## Troubleshooting WebForms compile errors
+
+If ASP.NET shows an error like:
+
+```text
+'expenseschatbot_aspx' does not contain a definition for 'btnSend_Click'
+```
+
+the `.aspx` markup is not connected to the code-behind class that contains:
+
+```csharp
+protected void btnSend_Click(object sender, EventArgs e)
+```
+
+Use one of these setups, depending on the project type.
+
+### Web Site project
+
+Use `CodeFile` and make sure `Inherits` matches the code-behind class name:
+
+```aspx
+<%@ Page Language="C#" AutoEventWireup="true"
+    CodeFile="ExpensesChatBot.aspx.cs"
+    Inherits="ExpensesChatBot" %>
+```
+
+```csharp
+public partial class ExpensesChatBot : System.Web.UI.Page
+{
+    protected void btnSend_Click(object sender, EventArgs e)
+    {
+    }
+}
+```
+
+### Web Application project with namespace
+
+Use `CodeBehind` and include the full namespace in `Inherits`:
+
+```aspx
+<%@ Page Language="C#" AutoEventWireup="true"
+    CodeBehind="ExpensesChatBot.aspx.cs"
+    Inherits="adminmodeluniversitiy.ExpensesChatBot" %>
+```
+
+```csharp
+namespace adminmodeluniversitiy
+{
+    public partial class ExpensesChatBot : System.Web.UI.Page
+    {
+        protected void btnSend_Click(object sender, EventArgs e)
+        {
+        }
+    }
+}
+```
+
+Also confirm `ExpensesChatBot.aspx.cs` is included in the project and its Build Action is `Compile`.
+
 ## Security notes
 
 - User input is sent to SQL Server as parameters, not string-concatenated SQL.
