@@ -18,7 +18,7 @@ public partial class ExpensesChatBot : Page
     {
         ExpenseChatbotResponse response = new ExpenseChatbotService().AskNaturalLanguage(
             txtUserInput.Text,
-            ExpenseChatbotQueryType.FileLinks);
+            ExpenseChatbotQueryType.AccountingExpensesTotal);
 
         botMessage.Attributes["class"] = response.IsError ? "chatbot-message error" : "chatbot-message";
         litBotMessage.Text = response.Message;

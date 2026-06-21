@@ -155,7 +155,7 @@
 
                 <div class="chatbot-body">
                     <div class="chatbot-thinking-note">
-                        No buttons are needed. The chatbot decides whether your request is about revenues, expenses, files, invoices, people, fixed assets, or payments.
+                        No buttons are needed. The chatbot decides whether your request is about revenues, expenses, accounting categories, fixed assets, buildings, or payments.
                     </div>
 
                     <div id="botMessage" runat="server" class="chatbot-message">
@@ -165,16 +165,11 @@
 
                     <div class="chatbot-examples">
                         Examples: <strong>ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟</strong>,
-                        <strong>show me expenses for Ahmed</strong>,
-                        <strong>what is the expense code for invoice INV-10045</strong>,
-                        <strong>find file links for receipt.pdf</strong>,
-                        <strong>how many expenses for last 3 years</strong>,
+                        <strong>المصاريف المتعلقة بالصيانة السيارات 3314</strong>,
+                        <strong>المجموع الكلي للموجودات الثابتة للكلية لكل السنوات</strong>,
+                        <strong>المجموع الكلي للمباني للكلية لكل الاعوام</strong>,
                         <strong>اريد المصاريف الكلية للسنوات الثلاثة الاخيرة</strong>,
-                        <strong>مجموع الموجودات الثابته مفصلة حسب الحسابات الثلاثير لمدة اخر 3 سنوات</strong>,
-                        <strong>ما هي القيمة الكلية للمبالغ المصروفة الى حسين حيدر</strong>,
-                        <strong>ابحث عن ملف رقم المستند 12345</strong>,
-                        <strong>ابحث عن المستند رقم 42 لسنة 2024-2025</strong>,
-                        <strong>اعرض الملفات بالتكلفة 1500</strong>.
+                        <strong>المجموع الكلي للمصروفات لتبويب محاسبي 3314</strong>.
                     </div>
 
                     <div class="chatbot-input-row">

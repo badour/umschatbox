@@ -147,6 +147,62 @@ public sealed class ExpenseChatbotQueryDefinition
                     "ExpenseChatbot.StudentRevenueSummary.ParameterName",
                     "@SearchText");
 
+            case ExpenseChatbotQueryType.AccountRelatedExpenses:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze expenses for an accounting account",
+                    "Account code, account name, or natural-language account expense question",
+                    "Example: المصاريف المتعلقة بالصيانة السيارات 3314",
+                    "Ask about expenses related to an accounting account or category.",
+                    "I calculated {0} account-related expense result(s).",
+                    "I could not calculate expenses for that accounting account.",
+                    "ExpenseChatbot.AccountRelatedExpenses.StoredProcedure",
+                    "dbo.Chatbot_GetAccountRelatedExpenses",
+                    "ExpenseChatbot.AccountRelatedExpenses.ParameterName",
+                    "@SearchText");
+
+            case ExpenseChatbotQueryType.FixedAssetsTotal:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze total fixed assets",
+                    "Natural-language fixed-assets total question",
+                    "Example: المجموع الكلي للموجودات الثابتة للكلية لكل السنوات",
+                    "Ask about total fixed assets for a period or all years.",
+                    "I calculated {0} fixed-assets total result(s).",
+                    "I could not calculate total fixed assets.",
+                    "ExpenseChatbot.FixedAssetsTotal.StoredProcedure",
+                    "dbo.Chatbot_GetFixedAssetsTotal",
+                    "ExpenseChatbot.FixedAssetsTotal.ParameterName",
+                    "@SearchText");
+
+            case ExpenseChatbotQueryType.BuildingsTotal:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze total buildings",
+                    "Natural-language buildings total question",
+                    "Example: المجموع الكلي للمباني للكلية لكل الاعوام",
+                    "Ask about total buildings for a period or all years.",
+                    "I calculated {0} buildings total result(s).",
+                    "I could not calculate total buildings.",
+                    "ExpenseChatbot.BuildingsTotal.StoredProcedure",
+                    "dbo.Chatbot_GetBuildingsTotal",
+                    "ExpenseChatbot.BuildingsTotal.ParameterName",
+                    "@SearchText");
+
+            case ExpenseChatbotQueryType.AccountingExpensesTotal:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze total accounting expenses",
+                    "Natural-language total expenses question",
+                    "Example: المجموع الكلي للمصروفات لشخص معين او لتبويب محاسبي معين",
+                    "Ask about total expenses for all expenses, a person, or an accounting code.",
+                    "I calculated {0} accounting expense total result(s).",
+                    "I could not calculate accounting expenses for that question.",
+                    "ExpenseChatbot.AccountingExpensesTotal.StoredProcedure",
+                    "dbo.Chatbot_GetAccountingExpensesTotal",
+                    "ExpenseChatbot.AccountingExpensesTotal.ParameterName",
+                    "@SearchText");
+
             default:
                 throw new ArgumentOutOfRangeException("queryType");
         }

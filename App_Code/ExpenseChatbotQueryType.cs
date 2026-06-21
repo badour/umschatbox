@@ -6,5 +6,9 @@ public enum ExpenseChatbotQueryType
     ExpenseNetValue,
     FixedAssetsByAccount,
     PersonPaymentTotal,
-    StudentRevenueSummary
+    StudentRevenueSummary,
+    AccountRelatedExpenses,
+    FixedAssetsTotal,
+    BuildingsTotal,
+    AccountingExpensesTotal
 }

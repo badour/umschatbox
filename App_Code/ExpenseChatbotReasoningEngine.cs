@@ -93,6 +93,18 @@ public static class ExpenseChatbotReasoningEngine
             case ExpenseChatbotQueryType.StudentRevenueSummary:
                 return "I treated this as a student revenue analysis and reviewed " + scope + " for income totals, receipt averages, and academic-year patterns.";
 
+            case ExpenseChatbotQueryType.AccountRelatedExpenses:
+                return "I treated this as an account-related expense analysis and reviewed " + scope + " for accounting category totals.";
+
+            case ExpenseChatbotQueryType.FixedAssetsTotal:
+                return "I treated this as a total fixed-assets analysis and reviewed " + scope + " for account prefix 1 values.";
+
+            case ExpenseChatbotQueryType.BuildingsTotal:
+                return "I treated this as a total buildings analysis and reviewed " + scope + " for account prefix 112 values.";
+
+            case ExpenseChatbotQueryType.AccountingExpensesTotal:
+                return "I treated this as a total accounting-expenses analysis and reviewed " + scope + " for account prefix 3 or the requested account/person filter.";
+
             case ExpenseChatbotQueryType.FileLinks:
                 return "I treated this as a file/document lookup and reviewed " + scope + " for link availability, document types, and recency.";
 
@@ -139,7 +151,11 @@ public static class ExpenseChatbotReasoningEngine
         return queryType == ExpenseChatbotQueryType.ExpenseNetValue
             || queryType == ExpenseChatbotQueryType.FixedAssetsByAccount
             || queryType == ExpenseChatbotQueryType.PersonPaymentTotal
-            || queryType == ExpenseChatbotQueryType.StudentRevenueSummary;
+            || queryType == ExpenseChatbotQueryType.StudentRevenueSummary
+            || queryType == ExpenseChatbotQueryType.AccountRelatedExpenses
+            || queryType == ExpenseChatbotQueryType.FixedAssetsTotal
+            || queryType == ExpenseChatbotQueryType.BuildingsTotal
+            || queryType == ExpenseChatbotQueryType.AccountingExpensesTotal;
     }
 
     private static void AddFileLinkInsights(List<string> insights, DataTable results, DateColumnProfile dateProfile)
@@ -698,6 +714,34 @@ public static class ExpenseChatbotReasoningEngine
                     priority += 100;
                 }
                 break;
+
+            case ExpenseChatbotQueryType.AccountRelatedExpenses:
+                if (name.Contains("totalaccounting") || name.Contains("netaccounting") || name.Contains("totaldebet") || name.Contains("totalcredit"))
+                {
+                    priority += 100;
+                }
+                break;
+
+            case ExpenseChatbotQueryType.FixedAssetsTotal:
+                if (name.Contains("totalfixed") || name.Contains("netfixed") || name.Contains("asset"))
+                {
+                    priority += 100;
+                }
+                break;
+
+            case ExpenseChatbotQueryType.BuildingsTotal:
+                if (name.Contains("totalbuildings") || name.Contains("netbuildings") || name.Contains("building"))
+                {
+                    priority += 100;
+                }
+                break;
+
+            case ExpenseChatbotQueryType.AccountingExpensesTotal:
+                if (name.Contains("totalexpenses") || name.Contains("netexpenses") || name.Contains("expense"))
+                {
+                    priority += 100;
+                }
+                break;
         }
 
         if (name.Contains("count") || name.Contains("average") || name.Contains("minimum") || name.Contains("maximum"))
@@ -723,6 +767,18 @@ public static class ExpenseChatbotReasoningEngine
 
             case ExpenseChatbotQueryType.PersonPaymentTotal:
                 return "total paid amount";
+
+            case ExpenseChatbotQueryType.AccountRelatedExpenses:
+                return "total account-related expense value";
+
+            case ExpenseChatbotQueryType.FixedAssetsTotal:
+                return "total fixed assets value";
+
+            case ExpenseChatbotQueryType.BuildingsTotal:
+                return "total buildings value";
+
+            case ExpenseChatbotQueryType.AccountingExpensesTotal:
+                return "total expenses value";
 
             default:
                 return FormatColumnName(columnName);

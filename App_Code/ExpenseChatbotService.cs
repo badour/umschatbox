@@ -192,7 +192,7 @@ public sealed class ExpenseChatbotService
             return true;
         }
 
-        queryType = ExpenseChatbotQueryType.FileLinks;
+        queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
         return false;
     }
 

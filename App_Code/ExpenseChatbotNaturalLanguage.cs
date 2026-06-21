@@ -63,6 +63,22 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             {
                 queryType = ExpenseChatbotQueryType.StudentRevenueSummary;
             }
+            else if (IsBuildingsTotalQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.BuildingsTotal;
+            }
+            else if (IsFixedAssetsTotalQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.FixedAssetsTotal;
+            }
+            else if (IsAccountRelatedExpensesQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.AccountRelatedExpenses;
+            }
+            else if (IsAccountingExpensesTotalQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
+            }
             else if (IsFixedAssetsByAccountQuestion(normalizedQuestion))
             {
                 queryType = ExpenseChatbotQueryType.FixedAssetsByAccount;
@@ -82,7 +98,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
                 if (intent.IsConfident)
                 {
-                    queryType = intent.QueryType;
+                    queryType = MapLegacyIntent(intent.QueryType);
                 }
                 else
                 {
@@ -226,6 +242,11 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "حسابات",
                 "موجودات",
                 "الموجودات",
+                "مباني",
+                "المباني",
+                "بناية",
+                "ابنية",
+                "أبنية",
                 "اصول",
                 "أصول",
                 "ثابت",
@@ -261,6 +282,30 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         if (IsStudentRevenueSummaryQuestion(normalized))
         {
             queryType = ExpenseChatbotQueryType.StudentRevenueSummary;
+            return true;
+        }
+
+        if (IsBuildingsTotalQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.BuildingsTotal;
+            return true;
+        }
+
+        if (IsFixedAssetsTotalQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.FixedAssetsTotal;
+            return true;
+        }
+
+        if (IsAccountRelatedExpensesQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.AccountRelatedExpenses;
+            return true;
+        }
+
+        if (IsAccountingExpensesTotalQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
             return true;
         }
 
@@ -342,7 +387,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "سنة",
             "عام"))
         {
-            queryType = ExpenseChatbotQueryType.FileLinks;
+            queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
             return true;
         }
 
@@ -361,7 +406,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "رقم الفاتورة",
             "فاتورة"))
         {
-            queryType = ExpenseChatbotQueryType.InvoiceExpenseCode;
+            queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
             return true;
         }
 
@@ -384,12 +429,24 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "مصروفات الموظف",
             "مصروفات المستخدم"))
         {
-            queryType = ExpenseChatbotQueryType.PersonExpenses;
+            queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
             return true;
         }
 
-        queryType = ExpenseChatbotQueryType.FileLinks;
+        queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
         return false;
+    }
+
+    private static ExpenseChatbotQueryType MapLegacyIntent(ExpenseChatbotQueryType queryType)
+    {
+        if (queryType == ExpenseChatbotQueryType.FileLinks
+            || queryType == ExpenseChatbotQueryType.InvoiceExpenseCode
+            || queryType == ExpenseChatbotQueryType.PersonExpenses)
+        {
+            return ExpenseChatbotQueryType.AccountingExpensesTotal;
+        }
+
+        return queryType;
     }
 
     private static string ExtractSearchValue(ExpenseChatbotQueryType queryType, string question)
@@ -416,6 +473,14 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
             case ExpenseChatbotQueryType.StudentRevenueSummary:
                 return ExtractStudentRevenueSummarySearchValue(question);
+
+            case ExpenseChatbotQueryType.AccountRelatedExpenses:
+                return ExtractAccountRelatedExpensesSearchValue(question);
+
+            case ExpenseChatbotQueryType.FixedAssetsTotal:
+            case ExpenseChatbotQueryType.BuildingsTotal:
+            case ExpenseChatbotQueryType.AccountingExpensesTotal:
+                return ExtractAccountingAnalyticsSearchValue(question);
 
             default:
                 return question;
@@ -830,6 +895,146 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         return hasAssetWord && (hasFixedWord || hasAccountBreakdownWord);
     }
 
+    private static string ExtractAccountRelatedExpensesSearchValue(string question)
+    {
+        string accountCode = ExtractAccountCodeToken(question);
+        if (!string.IsNullOrWhiteSpace(accountCode))
+        {
+            return accountCode;
+        }
+
+        string value = ExtractAfterPhrase(
+            question,
+            "expenses related to account",
+            "expenses for account",
+            "account expenses for",
+            "المصاريف المتعلقة بحساب",
+            "المصاريف المتعلقة ب",
+            "المصروفات المتعلقة بحساب",
+            "المصروفات المتعلقة ب",
+            "المصاريف المتعلقة",
+            "المصروفات المتعلقة",
+            "تبويب محاسبي",
+            "باب محاسبي",
+            "الباب المحاسبي",
+            "حساب");
+
+        return string.IsNullOrWhiteSpace(value) ? question : value;
+    }
+
+    private static string ExtractAccountingAnalyticsSearchValue(string question)
+    {
+        string value = ExtractFromYearValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        value = ExtractLastYearsValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        string accountCode = ExtractAccountCodeToken(question);
+        if (!string.IsNullOrWhiteSpace(accountCode))
+        {
+            return accountCode;
+        }
+
+        string personName = ExtractPersonPaymentTotalSearchValue(question);
+        if (!string.IsNullOrWhiteSpace(personName) && !string.Equals(personName, question, StringComparison.OrdinalIgnoreCase))
+        {
+            return personName;
+        }
+
+        personName = ExtractAfterPhrase(
+            question,
+            "expenses for person",
+            "expenses for",
+            "for person",
+            "المصروفات لشخص",
+            "المصاريف لشخص",
+            "المصروفات للشخص",
+            "المصاريف للشخص",
+            "لشخص",
+            "للشخص",
+            "شخص",
+            "باسم",
+            "اسم");
+
+        if (!string.IsNullOrWhiteSpace(personName))
+        {
+            return personName;
+        }
+
+        if (ContainsAny(
+            question,
+            "all years",
+            "all",
+            "لكل السنوات",
+            "لكل الاعوام",
+            "لكل الأعوام",
+            "كل السنوات",
+            "كل الاعوام",
+            "كل الأعوام",
+            "جميع السنوات",
+            "جميع الاعوام",
+            "جميع الأعوام"))
+        {
+            return "all years";
+        }
+
+        return question;
+    }
+
+    private static bool IsAccountRelatedExpensesQuestion(string question)
+    {
+        bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "مصاريف", "المصاريف", "المصروفات");
+        bool hasRelatedWord = ContainsAny(question, "related", "account", "category", "maintenance", "المتعلقة", "المتعلقه", "حساب", "تبويب", "باب", "صيانة", "الصيانة");
+        bool hasSpecificAccount = !string.IsNullOrWhiteSpace(ExtractAccountCodeToken(question));
+
+        return hasExpenseWord && hasRelatedWord && hasSpecificAccount;
+    }
+
+    private static bool IsFixedAssetsTotalQuestion(string question)
+    {
+        bool hasAssetWord = ContainsAny(question, "fixed assets", "fixed asset", "موجودات", "الموجودات", "اصول", "أصول");
+        bool hasFixedWord = ContainsAny(question, "fixed", "ثابت", "ثابتة", "الثابته", "الثابتة");
+        bool hasTotalWord = ContainsAny(question, "total", "sum", "all", "مجموع", "الكلي", "الكلية", "اجمالي", "إجمالي", "كل");
+        bool asksForDetailsByAccount = ContainsAny(question, "مفصلة", "تفصيل", "حسب الحسابات", "by account", "detailed");
+
+        return hasAssetWord && hasFixedWord && hasTotalWord && !asksForDetailsByAccount;
+    }
+
+    private static bool IsBuildingsTotalQuestion(string question)
+    {
+        bool hasBuildingWord = ContainsAny(question, "building", "buildings", "مباني", "المباني", "بناية", "ابنية", "أبنية");
+        bool hasTotalWord = ContainsAny(question, "total", "sum", "all", "مجموع", "الكلي", "الكلية", "اجمالي", "إجمالي", "كل");
+
+        return hasBuildingWord && hasTotalWord;
+    }
+
+    private static bool IsAccountingExpensesTotalQuestion(string question)
+    {
+        bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "مصاريف", "المصاريف", "المصروفات");
+        bool hasTotalWord = ContainsAny(question, "total", "sum", "net", "value", "amount", "مجموع", "الكلي", "الكلية", "اجمالي", "إجمالي", "قيمة", "مبالغ");
+        bool hasScopeWord = ContainsAny(question, "person", "account", "category", "شخص", "اسم", "حساب", "تبويب", "باب", "لشخص", "لتبويب", "المحاسبي");
+
+        return hasExpenseWord && hasTotalWord && hasScopeWord;
+    }
+
+    private static string ExtractAccountCodeToken(string question)
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return string.Empty;
+        }
+
+        Match match = Regex.Match(question, @"\b(?<code>\d{3,10})\b", RegexOptions.IgnoreCase);
+        return match.Success ? match.Groups["code"].Value : string.Empty;
+    }
+
     private static bool IsPersonPaymentTotalQuestion(string question)
     {
         bool hasPaymentWord = ContainsAny(
@@ -1161,39 +1366,6 @@ public sealed class ExpenseChatbotIntentClassifier
     {
         return new List<ExpenseChatbotIntentTrainingData>
         {
-            Sample("show file links for invoice INV-10045", ExpenseChatbotQueryType.FileLinks),
-            Sample("find attachment for this expense", ExpenseChatbotQueryType.FileLinks),
-            Sample("where is the receipt for expense code TRAVEL", ExpenseChatbotQueryType.FileLinks),
-            Sample("get documents for invoice 12345", ExpenseChatbotQueryType.FileLinks),
-            Sample("open file link for receipt.pdf", ExpenseChatbotQueryType.FileLinks),
-            Sample("search expense files", ExpenseChatbotQueryType.FileLinks),
-            Sample("show me uploaded file for this invoice", ExpenseChatbotQueryType.FileLinks),
-            Sample("find supporting document link", ExpenseChatbotQueryType.FileLinks),
-            Sample("find file by notes maintenance", ExpenseChatbotQueryType.FileLinks),
-            Sample("search file using total cost 1500", ExpenseChatbotQueryType.FileLinks),
-            Sample("get document by date 2024-05-10", ExpenseChatbotQueryType.FileLinks),
-            Sample("show file for doc number 12345", ExpenseChatbotQueryType.FileLinks),
-            Sample("ابحث عن رابط الملف", ExpenseChatbotQueryType.FileLinks),
-            Sample("اعرض ملف رقم المستند 12345", ExpenseChatbotQueryType.FileLinks),
-            Sample("ابحث عن المستند رقم 42 لسنة 2024-2025", ExpenseChatbotQueryType.FileLinks),
-            Sample("هات السند رقم 42 لسنة 2024-2025", ExpenseChatbotQueryType.FileLinks),
-            Sample("هات مرفق بتاريخ 2024-05-10", ExpenseChatbotQueryType.FileLinks),
-            Sample("ابحث في ملاحظات الملف صيانة", ExpenseChatbotQueryType.FileLinks),
-            Sample("اعرض الملفات بالتكلفة 1500", ExpenseChatbotQueryType.FileLinks),
-            Sample("فين رابط المستند", ExpenseChatbotQueryType.FileLinks),
-
-            Sample("what is the expense code for invoice INV-10045", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("show invoice expense code", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("find code for invoice number 12345", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("get expense codes for this invoice", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("which expense code belongs to invoice", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("invoice details by expense code", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("lookup invoice expense details", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("show specific invoice details", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("ما هو كود المصروف للفاتورة INV-10045", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("اعرض كود الفاتورة", ExpenseChatbotQueryType.InvoiceExpenseCode),
-            Sample("ابحث عن رقم الفاتورة 12345", ExpenseChatbotQueryType.InvoiceExpenseCode),
-
             Sample("how many expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
             Sample("hoe many expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
             Sample("how much expenses for last 3 years", ExpenseChatbotQueryType.ExpenseNetValue),
@@ -1228,17 +1400,30 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("total student income for all years", ExpenseChatbotQueryType.StudentRevenueSummary),
             Sample("sum student receipts by academic year", ExpenseChatbotQueryType.StudentRevenueSummary),
 
-            Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("find expenses related to Sarah", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("list expenses for employee Ali", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("get expenses submitted by user Mary", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("show person expense history", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("what did this employee spend", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("search expenses by person name", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("display expenses for staff member", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("اعرض مصروفات احمد", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("ابحث عن مصروفات الموظف علي", ExpenseChatbotQueryType.PersonExpenses),
-            Sample("هات مصروفات المستخدم سارة", ExpenseChatbotQueryType.PersonExpenses)
+            Sample("المصاريف المتعلقة بالصيانة السيارات 3314", ExpenseChatbotQueryType.AccountRelatedExpenses),
+            Sample("المصاريف المتعلقة بحساب 3314", ExpenseChatbotQueryType.AccountRelatedExpenses),
+            Sample("مصروفات الباب المحاسبي 3314", ExpenseChatbotQueryType.AccountRelatedExpenses),
+            Sample("expenses related to account 3314", ExpenseChatbotQueryType.AccountRelatedExpenses),
+
+            Sample("المجموع الكلي للموجودات الثابتة للكلية لكل السنوات", ExpenseChatbotQueryType.FixedAssetsTotal),
+            Sample("المجموع الكلي للموجودات الثابتة للكلية خلال فترة معينة", ExpenseChatbotQueryType.FixedAssetsTotal),
+            Sample("total fixed assets for all years", ExpenseChatbotQueryType.FixedAssetsTotal),
+
+            Sample("المجموع الكلي للمباني للكلية لكل الاعوام", ExpenseChatbotQueryType.BuildingsTotal),
+            Sample("المجموع الكلي للمباني للكلية خلال فترة معينة", ExpenseChatbotQueryType.BuildingsTotal),
+            Sample("total buildings for all years", ExpenseChatbotQueryType.BuildingsTotal),
+
+            Sample("المجموع الكلي للمصروفات لشخص معين", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("المجموع الكلي للمصروفات لتبويب محاسبي معين", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("اجمالي المصروفات للباب المحاسبي 3", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("total expenses for account 3314", ExpenseChatbotQueryType.AccountingExpensesTotal),
+
+            Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("find expenses related to Sarah", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("list expenses for employee Ali", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("اعرض مصروفات احمد", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("ابحث عن مصروفات الموظف علي", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("هات مصروفات المستخدم سارة", ExpenseChatbotQueryType.AccountingExpensesTotal)
         };
     }
 
