@@ -133,6 +133,20 @@ public sealed class ExpenseChatbotQueryDefinition
                     "ExpenseChatbot.PersonPaymentTotal.ParameterName",
                     "@SearchText");
 
+            case ExpenseChatbotQueryType.StudentRevenueSummary:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze student revenues",
+                    "Natural-language student revenue question",
+                    "Example: ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟",
+                    "Ask about student revenues, income, or receipts.",
+                    "I calculated {0} student revenue result(s).",
+                    "I could not calculate student revenues for that question.",
+                    "ExpenseChatbot.StudentRevenueSummary.StoredProcedure",
+                    "dbo.Chatbot_GetStudentRevenueSummary",
+                    "ExpenseChatbot.StudentRevenueSummary.ParameterName",
+                    "@SearchText");
+
             default:
                 throw new ArgumentOutOfRangeException("queryType");
         }

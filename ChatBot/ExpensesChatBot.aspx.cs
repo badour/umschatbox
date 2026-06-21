@@ -6,37 +6,19 @@ using System.Web.UI.WebControls;
 
 public partial class ExpensesChatBot : Page
 {
-    private const string ActiveButtonClass = "chatbot-action active";
-    private const string ButtonClass = "chatbot-action";
-
     protected void Page_Load(object sender, EventArgs e)
     {
         if (!IsPostBack)
         {
-            SetSelectedQueryType(ExpenseChatbotQueryType.FileLinks, true);
-            litBotMessage.Text = "Hello. Type a question like 'show me expenses for Ahmed', or choose a button and enter the requested value.";
+            InitializeChatbot();
         }
-    }
-
-    protected void btnFileLinks_Click(object sender, EventArgs e)
-    {
-        SetSelectedQueryType(ExpenseChatbotQueryType.FileLinks, true);
-    }
-
-    protected void btnInvoiceExpenseCode_Click(object sender, EventArgs e)
-    {
-        SetSelectedQueryType(ExpenseChatbotQueryType.InvoiceExpenseCode, true);
-    }
-
-    protected void btnPersonExpenses_Click(object sender, EventArgs e)
-    {
-        SetSelectedQueryType(ExpenseChatbotQueryType.PersonExpenses, true);
     }
 
     protected void btnSend_Click(object sender, EventArgs e)
     {
-        ExpenseChatbotQueryType queryType = GetSelectedQueryType();
-        ExpenseChatbotResponse response = new ExpenseChatbotService().AskNaturalLanguage(txtUserInput.Text, queryType);
+        ExpenseChatbotResponse response = new ExpenseChatbotService().AskNaturalLanguage(
+            txtUserInput.Text,
+            ExpenseChatbotQueryType.FileLinks);
 
         botMessage.Attributes["class"] = response.IsError ? "chatbot-message error" : "chatbot-message";
         litBotMessage.Text = response.Message;
@@ -70,47 +52,15 @@ public partial class ExpensesChatBot : Page
         }
     }
 
-    private void SetSelectedQueryType(ExpenseChatbotQueryType queryType, bool clearResults)
+    private void InitializeChatbot()
     {
-        ExpenseChatbotQueryDefinition definition = ExpenseChatbotQueryDefinition.FromType(queryType);
-
-        ViewState["ExpenseChatbotQueryType"] = queryType.ToString();
-        hdnQueryType.Value = queryType.ToString();
-        litSelectedQuery.Text = definition.Title;
-        lblInput.Text = "Ask a question or enter " + definition.InputLabel.ToLowerInvariant();
-        txtUserInput.Attributes["placeholder"] = "Example: show me expenses for Ahmed, or " + definition.InputPlaceholder;
+        litSelectedQuery.Text = "Ask anything";
+        lblInput.Text = "Type your question";
+        txtUserInput.Attributes["placeholder"] = "Example: ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟";
         botMessage.Attributes["class"] = "chatbot-message";
-
-        UpdateActiveButton(queryType);
-
-        if (clearResults)
-        {
-            txtUserInput.Text = string.Empty;
-            litBotMessage.Text = definition.EmptyInputMessage;
-            BindResults(null);
-            txtUserInput.Focus();
-        }
-    }
-
-    private ExpenseChatbotQueryType GetSelectedQueryType()
-    {
-        object selectedValue = ViewState["ExpenseChatbotQueryType"];
-        string selectedText = selectedValue == null ? hdnQueryType.Value : selectedValue.ToString();
-
-        ExpenseChatbotQueryType queryType;
-        if (ExpenseChatbotService.TryParseQueryType(selectedText, out queryType))
-        {
-            return queryType;
-        }
-
-        return ExpenseChatbotQueryType.FileLinks;
-    }
-
-    private void UpdateActiveButton(ExpenseChatbotQueryType queryType)
-    {
-        btnFileLinks.CssClass = queryType == ExpenseChatbotQueryType.FileLinks ? ActiveButtonClass : ButtonClass;
-        btnInvoiceExpenseCode.CssClass = queryType == ExpenseChatbotQueryType.InvoiceExpenseCode ? ActiveButtonClass : ButtonClass;
-        btnPersonExpenses.CssClass = queryType == ExpenseChatbotQueryType.PersonExpenses ? ActiveButtonClass : ButtonClass;
+        litBotMessage.Text = "Hello. Ask a full question in Arabic or English and I will choose the right SQL query, analyze the data, and explain the result.";
+        BindResults(null);
+        txtUserInput.Focus();
     }
 
     private void BindResults(DataTable results)

@@ -53,6 +53,9 @@ public static class ExpenseChatbotReasoningEngine
             case ExpenseChatbotQueryType.PersonPaymentTotal:
                 return "I treated this as a payee/person payment analysis and reviewed " + scope + " for total paid amount and date coverage.";
 
+            case ExpenseChatbotQueryType.StudentRevenueSummary:
+                return "I treated this as a student revenue analysis and reviewed " + scope + " for income totals, receipt averages, and academic-year patterns.";
+
             case ExpenseChatbotQueryType.FileLinks:
                 return "I treated this as a file/document lookup and reviewed " + scope + " for link availability, document types, and recency.";
 
@@ -86,6 +89,10 @@ public static class ExpenseChatbotReasoningEngine
 
             case ExpenseChatbotQueryType.PersonExpenses:
                 AddPersonExpenseInsights(insights, results, numericProfiles, dateProfile);
+                break;
+
+            case ExpenseChatbotQueryType.StudentRevenueSummary:
+                AddStudentRevenueInsights(insights, results, numericProfiles);
                 break;
         }
     }
@@ -207,6 +214,47 @@ public static class ExpenseChatbotReasoningEngine
             insights.Add(string.Format(
                 "The latest expense activity in these rows is {0}.",
                 dateProfile.Max.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+        }
+    }
+
+    private static void AddStudentRevenueInsights(List<string> insights, DataTable results, List<NumericColumnProfile> numericProfiles)
+    {
+        NumericColumnProfile revenueProfile = numericProfiles
+            .OrderByDescending(profile => GetRevenuePriority(profile.Column.ColumnName))
+            .ThenBy(profile => profile.Column.Ordinal)
+            .FirstOrDefault();
+
+        if (revenueProfile != null)
+        {
+            insights.Add(string.Format(
+                "Student revenue total based on {0} is {1}.",
+                FormatColumnName(revenueProfile.Column.ColumnName),
+                FormatDecimal(revenueProfile.Sum)));
+        }
+
+        DataColumn academicYearColumn = GetFirstColumnByName(results, "academicyear", "academic year", "studyyear", "schoolyear", "year");
+        if (academicYearColumn != null)
+        {
+            int distinctYearCount = CountDistinctValues(results, academicYearColumn);
+            insights.Add(string.Format(
+                "The result covers {0} academic year value(s).",
+                distinctYearCount));
+
+            AddTopValueInsight(
+                insights,
+                results,
+                academicYearColumn,
+                "The academic year with the most returned receipt rows is '{0}' with {1} row(s).");
+        }
+
+        NumericColumnProfile receiptCountProfile = numericProfiles
+            .FirstOrDefault(profile => NormalizeColumnName(profile.Column.ColumnName).Contains("receiptcount"));
+
+        if (receiptCountProfile != null)
+        {
+            insights.Add(string.Format(
+                "The analysis is based on {0} receipt row(s).",
+                FormatDecimal(receiptCountProfile.Sum)));
         }
     }
 
@@ -758,7 +806,29 @@ public static class ExpenseChatbotReasoningEngine
             priority += 20;
         }
 
+        if (queryType == ExpenseChatbotQueryType.StudentRevenueSummary)
+        {
+            priority += GetRevenuePriority(name);
+        }
+
         return priority;
+    }
+
+    private static int GetRevenuePriority(string columnName)
+    {
+        string name = (columnName ?? string.Empty).ToLowerInvariant();
+
+        if (name.Contains("totalstudentrevenue") || name.Contains("studentrevenue") || name.Contains("revenue") || name.Contains("income"))
+        {
+            return 120;
+        }
+
+        if (name.Contains("inputvalue") || name.Contains("receipt") || name.Contains("value"))
+        {
+            return 90;
+        }
+
+        return 0;
     }
 
     private static int GetAmountPriority(string columnName)

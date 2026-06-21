@@ -59,7 +59,11 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         if (looksNaturalLanguage)
         {
-            if (IsFixedAssetsByAccountQuestion(normalizedQuestion))
+            if (IsStudentRevenueSummaryQuestion(normalizedQuestion))
+            {
+                queryType = ExpenseChatbotQueryType.StudentRevenueSummary;
+            }
+            else if (IsFixedAssetsByAccountQuestion(normalizedQuestion))
             {
                 queryType = ExpenseChatbotQueryType.FixedAssetsByAccount;
             }
@@ -135,6 +139,14 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "paid",
                 "payment",
                 "payments",
+                "income",
+                "revenue",
+                "revenues",
+                "receipt",
+                "receipts",
+                "student",
+                "students",
+                "academic",
                 "net",
                 "value",
                 "total",
@@ -185,6 +197,24 @@ public sealed class ExpenseChatbotNaturalLanguageParser
                 "مصروفة",
                 "مدفوع",
                 "مدفوعة",
+                "ايراد",
+                "ايرادات",
+                "إيراد",
+                "إيرادات",
+                "دخل",
+                "مقبوضات",
+                "قبض",
+                "ايصالات",
+                "إيصالات",
+                "طلبة",
+                "طلاب",
+                "طالب",
+                "الدراسية",
+                "دراسية",
+                "الاعوام",
+                "الأعوام",
+                "اعوام",
+                "أعوام",
                 "صافي",
                 "اجمالي",
                 "إجمالي",
@@ -227,6 +257,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
     private static bool TryClassifyByKeywords(string question, out ExpenseChatbotQueryType queryType)
     {
         string normalized = question.ToLowerInvariant();
+
+        if (IsStudentRevenueSummaryQuestion(normalized))
+        {
+            queryType = ExpenseChatbotQueryType.StudentRevenueSummary;
+            return true;
+        }
 
         if (IsFixedAssetsByAccountQuestion(normalized))
         {
@@ -377,6 +413,9 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
             case ExpenseChatbotQueryType.PersonPaymentTotal:
                 return ExtractPersonPaymentTotalSearchValue(question);
+
+            case ExpenseChatbotQueryType.StudentRevenueSummary:
+                return ExtractStudentRevenueSummarySearchValue(question);
 
             default:
                 return question;
@@ -677,6 +716,87 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "إلى");
 
         return string.IsNullOrWhiteSpace(value) ? question : value;
+    }
+
+    private static string ExtractStudentRevenueSummarySearchValue(string question)
+    {
+        string value = ExtractFromYearValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        value = ExtractLastYearsValue(question);
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        if (ContainsAny(
+            question,
+            "all academic years",
+            "all years",
+            "لكل الاعوام الدراسية",
+            "لكل الأعوام الدراسية",
+            "كل الاعوام الدراسية",
+            "كل الأعوام الدراسية",
+            "جميع الاعوام الدراسية",
+            "جميع الأعوام الدراسية"))
+        {
+            return "all academic years";
+        }
+
+        return "all academic years";
+    }
+
+    private static bool IsStudentRevenueSummaryQuestion(string question)
+    {
+        bool hasRevenueWord = ContainsAny(
+            question,
+            "income",
+            "revenue",
+            "revenues",
+            "receipt",
+            "receipts",
+            "ايراد",
+            "ايرادات",
+            "إيراد",
+            "إيرادات",
+            "دخل",
+            "مقبوضات",
+            "قبض",
+            "ايصالات",
+            "إيصالات");
+        bool hasStudentWord = ContainsAny(
+            question,
+            "student",
+            "students",
+            "student income",
+            "student revenue",
+            "طلبة",
+            "طلاب",
+            "طالب",
+            "الطلبة",
+            "الطلاب");
+        bool hasSummaryWord = ContainsAny(
+            question,
+            "total",
+            "sum",
+            "all",
+            "academic year",
+            "academic years",
+            "مجموع",
+            "اجمالي",
+            "إجمالي",
+            "كلي",
+            "كل",
+            "لكل",
+            "جميع",
+            "الاعوام",
+            "الأعوام",
+            "الدراسية");
+
+        return hasRevenueWord && (hasStudentWord || hasSummaryWord);
     }
 
     private static bool IsFixedAssetsByAccountQuestion(string question)
@@ -1100,6 +1220,13 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("ما هي القيمة الكلية للمبالغ المصروفة الى السيح حسين حيدر", ExpenseChatbotQueryType.PersonPaymentTotal),
             Sample("ما هي القيمة الكلية للمبالغ المصروفة إلى السيد حسين حيدر", ExpenseChatbotQueryType.PersonPaymentTotal),
             Sample("اجمالي المبالغ المدفوعة الى حسين حيدر", ExpenseChatbotQueryType.PersonPaymentTotal),
+
+            Sample("ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية", ExpenseChatbotQueryType.StudentRevenueSummary),
+            Sample("ما هو مجموع إيرادات الطلبة لكل الأعوام الدراسية", ExpenseChatbotQueryType.StudentRevenueSummary),
+            Sample("اجمالي ايرادات الطلاب لجميع الاعوام الدراسية", ExpenseChatbotQueryType.StudentRevenueSummary),
+            Sample("student revenues for all academic years", ExpenseChatbotQueryType.StudentRevenueSummary),
+            Sample("total student income for all years", ExpenseChatbotQueryType.StudentRevenueSummary),
+            Sample("sum student receipts by academic year", ExpenseChatbotQueryType.StudentRevenueSummary),
 
             Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.PersonExpenses),
             Sample("find expenses related to Sarah", ExpenseChatbotQueryType.PersonExpenses),

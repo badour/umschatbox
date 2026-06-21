@@ -1,17 +1,30 @@
 # Expenses WebForms Chatbot
 
 This repository contains a drop-in ASP.NET WebForms chatbot module for an expenses application.
-Users can type natural-language questions, and the page also keeps three guided buttons as a fallback:
+Users type natural-language questions into one ChatGPT-style prompt. The page does not require
+query-type buttons; the chatbot classifies the question, runs the matching SQL procedure, analyzes the
+returned data, and explains the result.
 
-- Find file links
-- Find expense code details for a specific invoice
-- Find expenses related to a specific person
+Supported examples include:
+
+- student revenue analytics;
+- file links;
+- expense code details for a specific invoice;
+- expenses related to a specific person;
+- accounting and fixed-asset summaries.
 
 The module uses ML.NET to classify the user's intent, simple extraction rules to pull out the search
 value, parameterized SQL stored procedure calls through ADO.NET to query the database, and a reasoning
 layer that summarizes the returned rows before displaying the table.
 
 Examples:
+
+```text
+User: ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟
+Intent detected: StudentRevenueSummary
+Search value extracted by rules: all academic years
+SQL procedure called: dbo.Chatbot_GetStudentRevenueSummary @SearchText = 'all academic years'
+```
 
 ```text
 User: show me expenses for Ahmed
@@ -30,7 +43,7 @@ SQL procedure called: dbo.Chatbot_GetExpenseNetValue @SearchText = 'last 3 years
 ## Files
 
 - `ChatBot/ExpensesChatBot.aspx` - WebForms chatbot page and UI.
-- `ChatBot/ExpensesChatBot.aspx.cs` - page event handlers, button selection, and result binding.
+- `ChatBot/ExpensesChatBot.aspx.cs` - page event handlers, natural-language request handling, and result binding.
 - `App_Code/ExpenseChatbot*.cs` - query definitions, configuration, SQL repository, and service logic.
 - `App_Code/ExpenseChatbotNaturalLanguage.cs` - ML.NET intent classifier and natural-language value extraction.
 - `App_Code/ExpenseChatbotReasoningEngine.cs` - post-query analysis for totals, averages, trends, categories, and anomalies.
@@ -58,6 +71,7 @@ These examples are classified automatically:
 - `show me expenses for Ahmed` -> `PersonExpenses`, search value `Ahmed`
 - `list expenses submitted by employee Sara` -> `PersonExpenses`, search value `Sara`
 - `what is the expense code for invoice INV-10045` -> `InvoiceExpenseCode`, search value `INV-10045`
+- `ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟` -> `StudentRevenueSummary`, search value `all academic years`
 - `how many expenses for last 3 years` -> `ExpenseNetValue`, search value `last 3 years`
 - `total expenses from 2023 till now` -> `ExpenseNetValue`, search value `from 2023`
 - `صافي المصروفات من 2023 حتى الآن` -> `ExpenseNetValue`, search value `from 2023`
@@ -70,7 +84,8 @@ These examples are classified automatically:
 - `اعرض الملفات بالتكلفة 1500` -> `FileLinks`, search value `1500`
 - `هات مرفق بتاريخ 2024-05-10` -> `FileLinks`, search value `2024-05-10`
 
-If a user types only a direct value, such as `INV-10045`, the selected button is used as the fallback query type.
+The page no longer uses query-type buttons. If a user types only a direct value, such as `INV-10045`,
+the service treats it as a simple file/document search fallback.
 
 For the `adminmodeluniversitiy` app, the file-link query should search `dbo.UploadExpenseIncome`.
 The `@SearchText` value can match document number, file path, document type, date, and any notes/cost
@@ -90,6 +105,11 @@ account code and returns debit, credit, net value, and transaction count.
 For person payment analysis questions like `ما هي القيمة الكلية للمبالغ المصروفة الى السيح حسين حيدر`,
 the chatbot runs `dbo.Chatbot_GetPersonPaymentTotal` after extracting the name `حسين حيدر`.
 
+For student revenue questions like `ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟`, the chatbot
+runs `dbo.Chatbot_GetStudentRevenueSummary`. The SQL template sums `ReceiptDocTb.InputValue` across
+all rows by default, with a commented grouped-by-academic-year version if your table has an academic
+year column.
+
 ## Reasoning layer
 
 After a stored procedure returns data, `ExpenseChatbotReasoningEngine` inspects the `DataTable` before
@@ -98,6 +118,7 @@ the rows are shown. It can add insights such as:
 - file-link coverage, document type frequency, distinct document count, and newest file date;
 - invoice expense-code count, repeated codes, status distribution, and invoice amount totals;
 - person-expense totals, latest activity, and most frequent expense categories/codes;
+- student revenue totals, receipt counts, average receipt value, and academic-year coverage when available;
 - numeric totals, averages, minimums, and maximums;
 - date ranges and year-over-year direction when date and amount columns are present;
 - largest account/category/person by value or count;
@@ -117,6 +138,7 @@ and these stored procedures:
 - `dbo.Chatbot_GetExpenseNetValue @SearchText`
 - `dbo.Chatbot_GetFixedAssetsByAccount @SearchText`
 - `dbo.Chatbot_GetPersonPaymentTotal @SearchText`
+- `dbo.Chatbot_GetStudentRevenueSummary @SearchText`
 
 You can override the connection string name, stored procedure names, parameter names, command timeout,
 max displayed rows, and ML.NET intent confidence threshold through `appSettings` in `Web.config`.

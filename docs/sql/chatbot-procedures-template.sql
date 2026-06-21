@@ -328,3 +328,43 @@ BEGIN
     WHERE p.PayeeName LIKE N'%' + @PersonName + N'%';
 END;
 GO
+
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetStudentRevenueSummary
+    @SearchText NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    /*
+        Student revenue analytics for questions like:
+        ما هي مجموع الايرادات الطلبة لكل الاعوام الدراسية؟
+
+        Required table/column from adminmodeluniversitiy:
+        dbo.ReceiptDocTb.InputValue
+
+        This default version returns one total across all rows.
+        If ReceiptDocTb has an academic-year column, uncomment the grouped query below
+        and replace AcademicYear with the real column name.
+    */
+    SELECT
+        COUNT_BIG(*) AS ReceiptCount,
+        SUM(ISNULL(InputValue, 0)) AS TotalStudentRevenue,
+        AVG(CAST(ISNULL(InputValue, 0) AS DECIMAL(18, 2))) AS AverageReceiptValue,
+        MIN(ISNULL(InputValue, 0)) AS MinimumReceiptValue,
+        MAX(ISNULL(InputValue, 0)) AS MaximumReceiptValue
+    FROM dbo.ReceiptDocTb;
+
+    /*
+    SELECT
+        AcademicYear,
+        COUNT_BIG(*) AS ReceiptCount,
+        SUM(ISNULL(InputValue, 0)) AS TotalStudentRevenue,
+        AVG(CAST(ISNULL(InputValue, 0) AS DECIMAL(18, 2))) AS AverageReceiptValue,
+        MIN(ISNULL(InputValue, 0)) AS MinimumReceiptValue,
+        MAX(ISNULL(InputValue, 0)) AS MaximumReceiptValue
+    FROM dbo.ReceiptDocTb
+    GROUP BY AcademicYear
+    ORDER BY AcademicYear;
+    */
+END;
+GO
