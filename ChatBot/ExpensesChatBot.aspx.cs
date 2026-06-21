@@ -65,6 +65,7 @@ public partial class ExpensesChatBot : Page
 
     private void BindResults(DataTable results)
     {
+        grdResults.Visible = results != null && results.Rows.Count > 0;
         grdResults.DataSource = results;
         grdResults.DataBind();
     }

@@ -3,7 +3,7 @@
 This repository contains a drop-in ASP.NET WebForms chatbot module for an expenses application.
 Users type natural-language questions into one ChatGPT-style prompt. The page does not require
 query-type buttons; the chatbot classifies the question, runs the matching SQL procedure, analyzes the
-returned data, and explains the result.
+returned data, and explains the result in text.
 
 Supported examples include:
 
@@ -113,7 +113,8 @@ year column.
 ## Reasoning layer
 
 After a stored procedure returns data, `ExpenseChatbotReasoningEngine` inspects the `DataTable` before
-the rows are shown. It can add insights such as:
+responding. Natural-language answers are text-only, so the GridView stays hidden for those responses.
+It can add insights such as:
 
 - file-link coverage, document type frequency, distinct document count, and newest file date;
 - invoice expense-code count, repeated codes, status distribution, and invoice amount totals;
@@ -126,6 +127,12 @@ the rows are shown. It can add insights such as:
 
 This keeps the database responsible for retrieving the correct data while the C# chatbot explains what
 the result appears to mean.
+
+For analytics questions without a time period, the bot returns the main net/total number only. For
+example, a student revenue question without a year range returns the total student revenue. When the
+question includes a time period such as `last 3 years`, `from 2023`, `لكل الاعوام الدراسية`, or
+`آخر 3 سنوات`, the bot gives a more detailed text explanation with period/category rows instead of a
+single number.
 
 ## Configuration
 

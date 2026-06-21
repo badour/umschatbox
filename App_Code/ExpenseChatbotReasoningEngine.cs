@@ -36,6 +36,43 @@ public static class ExpenseChatbotReasoningEngine
         return "Analysis:\n- " + string.Join("\n- ", insights.ToArray());
     }
 
+    public static string BuildConversationalAnswer(ExpenseChatbotQueryType queryType, DataTable results, int totalRowCount, bool hasTimePeriod)
+    {
+        if (results == null || results.Rows.Count == 0)
+        {
+            return "I could not find data to analyze for this question.";
+        }
+
+        List<NumericColumnProfile> numericProfiles = GetNumericProfiles(results);
+
+        if (IsAnalyticalQuery(queryType) && !hasTimePeriod)
+        {
+            NumericColumnProfile primaryMetric = GetPrimaryMetricProfile(queryType, numericProfiles);
+
+            if (primaryMetric != null)
+            {
+                decimal value = primaryMetric.Values.Count == 1 ? primaryMetric.Values[0] : primaryMetric.Sum;
+                return string.Format(
+                    "Answer:\nThe {0} is {1}.\n\nI treated this as a direct total/net question with no time period, so I am returning the main calculated number instead of a table.",
+                    GetPrimaryMetricLabel(queryType, primaryMetric.Column.ColumnName),
+                    FormatDecimal(value));
+            }
+        }
+
+        string analysis = BuildAnalysis(queryType, results, totalRowCount);
+        List<string> rowDetails = BuildRowDetails(results, numericProfiles, hasTimePeriod);
+        string periodText = hasTimePeriod
+            ? "Because your question includes a time period, I am giving a detailed explanation instead of only one net number."
+            : "I am answering in text only and summarizing the most relevant returned data.";
+
+        if (rowDetails.Count == 0)
+        {
+            return "Answer:\n" + periodText + "\n\n" + analysis;
+        }
+
+        return "Answer:\n" + periodText + "\n\n" + analysis + "\n\nDetails:\n- " + string.Join("\n- ", rowDetails.ToArray());
+    }
+
     private static string BuildIntro(ExpenseChatbotQueryType queryType, int analyzedRows, int totalRowCount)
     {
         string scope = totalRowCount > analyzedRows
@@ -95,6 +132,14 @@ public static class ExpenseChatbotReasoningEngine
                 AddStudentRevenueInsights(insights, results, numericProfiles);
                 break;
         }
+    }
+
+    private static bool IsAnalyticalQuery(ExpenseChatbotQueryType queryType)
+    {
+        return queryType == ExpenseChatbotQueryType.ExpenseNetValue
+            || queryType == ExpenseChatbotQueryType.FixedAssetsByAccount
+            || queryType == ExpenseChatbotQueryType.PersonPaymentTotal
+            || queryType == ExpenseChatbotQueryType.StudentRevenueSummary;
     }
 
     private static void AddFileLinkInsights(List<string> insights, DataTable results, DateColumnProfile dateProfile)
@@ -609,6 +654,158 @@ public static class ExpenseChatbotReasoningEngine
             .OrderByDescending(profile => GetAmountPriority(profile.Column.ColumnName))
             .ThenBy(profile => profile.Column.Ordinal)
             .FirstOrDefault();
+    }
+
+    private static NumericColumnProfile GetPrimaryMetricProfile(ExpenseChatbotQueryType queryType, List<NumericColumnProfile> numericProfiles)
+    {
+        return numericProfiles
+            .OrderByDescending(profile => GetPrimaryMetricPriority(queryType, profile.Column.ColumnName))
+            .ThenBy(profile => profile.Column.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private static int GetPrimaryMetricPriority(ExpenseChatbotQueryType queryType, string columnName)
+    {
+        string name = (columnName ?? string.Empty).ToLowerInvariant();
+        int priority = GetAmountPriority(name);
+
+        switch (queryType)
+        {
+            case ExpenseChatbotQueryType.StudentRevenueSummary:
+                if (name.Contains("totalstudentrevenue") || name.Contains("studentrevenue") || name.Contains("revenue"))
+                {
+                    priority += 100;
+                }
+                break;
+
+            case ExpenseChatbotQueryType.ExpenseNetValue:
+                if (name.Contains("netexpense") || name.Contains("net"))
+                {
+                    priority += 100;
+                }
+                break;
+
+            case ExpenseChatbotQueryType.FixedAssetsByAccount:
+                if (name.Contains("netfixed") || name.Contains("asset"))
+                {
+                    priority += 100;
+                }
+                break;
+
+            case ExpenseChatbotQueryType.PersonPaymentTotal:
+                if (name.Contains("totalpaid") || name.Contains("paid") || name.Contains("payment"))
+                {
+                    priority += 100;
+                }
+                break;
+        }
+
+        if (name.Contains("count") || name.Contains("average") || name.Contains("minimum") || name.Contains("maximum"))
+        {
+            priority -= 50;
+        }
+
+        return priority;
+    }
+
+    private static string GetPrimaryMetricLabel(ExpenseChatbotQueryType queryType, string columnName)
+    {
+        switch (queryType)
+        {
+            case ExpenseChatbotQueryType.StudentRevenueSummary:
+                return "total student revenue";
+
+            case ExpenseChatbotQueryType.ExpenseNetValue:
+                return "net expense value";
+
+            case ExpenseChatbotQueryType.FixedAssetsByAccount:
+                return "net fixed assets value";
+
+            case ExpenseChatbotQueryType.PersonPaymentTotal:
+                return "total paid amount";
+
+            default:
+                return FormatColumnName(columnName);
+        }
+    }
+
+    private static List<string> BuildRowDetails(DataTable results, List<NumericColumnProfile> numericProfiles, bool hasTimePeriod)
+    {
+        List<string> details = new List<string>();
+
+        if (results == null || results.Rows.Count == 0)
+        {
+            return details;
+        }
+
+        DataColumn labelColumn = GetBestDetailLabelColumn(results);
+        List<NumericColumnProfile> selectedMetrics = numericProfiles
+            .OrderByDescending(profile => GetAmountPriority(profile.Column.ColumnName))
+            .ThenBy(profile => profile.Column.Ordinal)
+            .Take(hasTimePeriod ? 3 : 2)
+            .ToList();
+
+        int maxRows = hasTimePeriod ? Math.Min(10, results.Rows.Count) : Math.Min(5, results.Rows.Count);
+
+        for (int rowIndex = 0; rowIndex < maxRows; rowIndex++)
+        {
+            DataRow row = results.Rows[rowIndex];
+            string label = labelColumn == null
+                ? "Result " + (rowIndex + 1).ToString(CultureInfo.InvariantCulture)
+                : Convert.ToString(row[labelColumn], CultureInfo.CurrentCulture);
+
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                label = "Result " + (rowIndex + 1).ToString(CultureInfo.InvariantCulture);
+            }
+
+            List<string> metricParts = new List<string>();
+            foreach (NumericColumnProfile metric in selectedMetrics)
+            {
+                decimal value;
+                if (TryGetDecimal(row[metric.Column], out value))
+                {
+                    metricParts.Add(FormatColumnName(metric.Column.ColumnName) + " " + FormatDecimal(value));
+                }
+            }
+
+            if (metricParts.Count > 0)
+            {
+                details.Add(label + ": " + string.Join(", ", metricParts.ToArray()));
+            }
+            else
+            {
+                details.Add(label);
+            }
+        }
+
+        if (results.Rows.Count > maxRows)
+        {
+            details.Add(string.Format("There are {0} more row(s) not shown in this text summary.", results.Rows.Count - maxRows));
+        }
+
+        return details;
+    }
+
+    private static DataColumn GetBestDetailLabelColumn(DataTable results)
+    {
+        return GetFirstColumnByName(
+            results,
+            "academicyear",
+            "academic year",
+            "year",
+            "accountname",
+            "account name",
+            "accountcode",
+            "account code",
+            "person",
+            "payee",
+            "name",
+            "expensecode",
+            "expense code",
+            "doctype",
+            "docnum",
+            "date");
     }
 
     private static DataColumn GetFirstColumnByName(DataTable results, params string[] nameParts)
