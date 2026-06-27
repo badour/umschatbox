@@ -21,6 +21,8 @@
     - User account name -> ToAccountName
     - User descriptive text -> DocDetails and DocTitl
     - Values -> DebetValue and CreditValue
+    - Academic-year grouping marker -> |academic_years
+      Academic year starts on September 1 and ends on August 31.
 */
 
 CREATE OR ALTER PROCEDURE dbo.Chatbot_GetAccountRelatedExpenses
@@ -139,6 +141,14 @@ BEGIN
     DECLARE @YearPosition INT = PATINDEX('%[12][0-9][0-9][0-9]%', @NormalizedSearch);
     DECLARE @CodePosition INT = PATINDEX('%[0-9][0-9][0-9]%', @Search);
     DECLARE @HasSpecificText BIT = 0;
+    DECLARE @GroupByAcademicYear BIT = 0;
+
+    IF CHARINDEX(N'|academic_years', @Search) > 0
+    BEGIN
+        SET @GroupByAcademicYear = 1;
+        SET @Search = REPLACE(@Search, N'|academic_years', N'');
+        SET @NormalizedSearch = LOWER(@Search);
+    END;
 
     IF @YearPosition > 0
     BEGIN
@@ -157,8 +167,39 @@ BEGIN
         SET @HasSpecificText = 1;
     END;
 
+    ;WITH FilteredRows AS
+    (
+        SELECT
+            *,
+            CASE
+                WHEN MONTH([date]) >= 9
+                    THEN CONVERT(NVARCHAR(4), YEAR([date])) + N'-' + CONVERT(NVARCHAR(4), YEAR([date]) + 1)
+                ELSE CONVERT(NVARCHAR(4), YEAR([date]) - 1) + N'-' + CONVERT(NVARCHAR(4), YEAR([date]))
+            END AS AcademicYear
+        FROM dbo.ExpencesAccDocSum
+        WHERE (
+                (@AccountCode IS NOT NULL AND FromAccountID LIKE @AccountCode + N'%')
+                OR (@AccountCode IS NULL AND @HasSpecificText = 0 AND FromAccountID LIKE N'3%')
+                OR (@AccountCode IS NULL AND @HasSpecificText = 1)
+          )
+          AND (@StartDate IS NULL OR ([date] >= @StartDate AND [date] < DATEADD(DAY, 1, @EndDate)))
+          AND (
+                @AccountCode IS NOT NULL
+                OR @HasSpecificText = 0
+                OR ToAccountName LIKE N'%' + @Search + N'%'
+                OR DocTitl LIKE N'%' + @Search + N'%'
+                OR CAST(DocDetails AS NVARCHAR(MAX)) LIKE N'%' + @Search + N'%'
+                OR AddedBy LIKE N'%' + @Search + N'%'
+                OR DepartmentName LIKE N'%' + @Search + N'%'
+          )
+    )
     SELECT
-        COALESCE(@AccountCode, N'3') AS AccountPrefix,
+        CASE WHEN @GroupByAcademicYear = 1 THEN AcademicYear ELSE NULL END AS AcademicYear,
+        CASE
+            WHEN @AccountCode IS NOT NULL THEN @AccountCode
+            WHEN @HasSpecificText = 0 THEN N'3'
+            ELSE N'text search'
+        END AS AccountPrefix,
         @Search AS SearchText,
         COUNT_BIG(*) AS TransactionCount,
         MIN([date]) AS PeriodStart,
@@ -171,21 +212,8 @@ BEGIN
         MIN(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MinimumExpensesValue,
         MAX(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MaximumExpensesValue,
         SQRT(ABS(CONVERT(FLOAT, SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0))))) AS SquareRootTotalValue
-    FROM dbo.ExpencesAccDocSum
-    WHERE (
-            (@AccountCode IS NOT NULL AND FromAccountID LIKE @AccountCode + N'%')
-            OR (@AccountCode IS NULL AND @HasSpecificText = 0 AND FromAccountID LIKE N'3%')
-            OR (@AccountCode IS NULL AND @HasSpecificText = 1)
-      )
-      AND (@StartDate IS NULL OR ([date] >= @StartDate AND [date] < DATEADD(DAY, 1, @EndDate)))
-      AND (
-            @AccountCode IS NOT NULL
-            OR @HasSpecificText = 0
-            OR ToAccountName LIKE N'%' + @Search + N'%'
-            OR DocTitl LIKE N'%' + @Search + N'%'
-            OR CAST(DocDetails AS NVARCHAR(MAX)) LIKE N'%' + @Search + N'%'
-            OR AddedBy LIKE N'%' + @Search + N'%'
-            OR DepartmentName LIKE N'%' + @Search + N'%'
-      );
+    FROM FilteredRows
+    GROUP BY CASE WHEN @GroupByAcademicYear = 1 THEN AcademicYear ELSE NULL END
+    ORDER BY AcademicYear;
 END;
 GO

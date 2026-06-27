@@ -132,7 +132,7 @@ public sealed class ExpenseChatbotService
         }
 
         string messagePrefix = request.UsedNaturalLanguage
-            ? string.Format("I understood your question as '{0}' and searched for '{1}'. ", definition.Title, request.SearchValue)
+            ? string.Format("I understood your question as '{0}' and searched for '{1}'. ", definition.Title, CleanSearchValueForDisplay(request.SearchValue))
             : string.Empty;
 
         return new ExpenseChatbotResponse(messagePrefix + response.Message, response.Results, response.IsError);
@@ -170,6 +170,11 @@ public sealed class ExpenseChatbotService
             || text.Contains("الدراسية")
             || text.Contains("من ")
             || text.Contains("حتى");
+    }
+
+    private static string CleanSearchValueForDisplay(string searchValue)
+    {
+        return (searchValue ?? string.Empty).Replace("|academic_years", string.Empty).Trim();
     }
 
     private static string BuildReasoningAnalysis(ExpenseChatbotQueryType queryType, DataTable results, int originalRowCount)

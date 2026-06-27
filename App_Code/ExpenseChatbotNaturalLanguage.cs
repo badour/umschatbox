@@ -215,7 +215,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         string accountNameValue = ExtractArabicAccountNameSearchValue(question);
         if (!string.IsNullOrWhiteSpace(accountNameValue))
         {
-            return accountNameValue;
+            return AddAcademicYearMarkerIfNeeded(accountNameValue, question);
         }
 
         string value = ExtractFromYearValue(question);
@@ -233,7 +233,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         string accountCode = ExtractAccountCodeToken(question);
         if (!string.IsNullOrWhiteSpace(accountCode))
         {
-            return accountCode;
+            return AddAcademicYearMarkerIfNeeded(accountCode, question);
         }
 
         value = ExtractAfterPhrase(
@@ -243,6 +243,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "account total for",
             "account name",
             "account",
+            "company account",
+            "account company",
+            "حسابات شركة",
+            "حساب شركة",
+            "حسابات",
+            "حساب",
             "المجموع الكلي لحسابات",
             "المجموع الكلي لحساب",
             "المصاريف الكلية لحسابات",
@@ -272,7 +278,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         if (!string.IsNullOrWhiteSpace(value))
         {
-            return value;
+            return AddAcademicYearMarkerIfNeeded(value, question);
         }
 
         if (ContainsAny(
@@ -292,7 +298,39 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             return "all years";
         }
 
-        return question;
+        return AddAcademicYearMarkerIfNeeded(question, question);
+    }
+
+    private static string AddAcademicYearMarkerIfNeeded(string searchValue, string question)
+    {
+        if (string.IsNullOrWhiteSpace(searchValue))
+        {
+            return searchValue;
+        }
+
+        return IsAcademicYearBreakdownQuestion(question)
+            ? searchValue + "|academic_years"
+            : searchValue;
+    }
+
+    private static bool IsAcademicYearBreakdownQuestion(string question)
+    {
+        return ContainsAny(
+            question,
+            "كل الاعوام",
+            "كل الأعوام",
+            "لكل الاعوام",
+            "لكل الأعوام",
+            "كل الاعوام الدراسية",
+            "كل الأعوام الدراسية",
+            "لكل الاعوام الدراسية",
+            "لكل الأعوام الدراسية",
+            "حسب السنوات",
+            "حسب السنين",
+            "لكل سنة دراسية",
+            "سنة دراسية",
+            "المدين و الدائن",
+            "المدين والدائن");
     }
 
     private static string ExtractArabicAccountNameSearchValue(string question)
@@ -306,7 +344,11 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "المصاريف الكلية ل",
             "المصاريف الكلية",
             "المجموع الكلي للمصاريف",
-            "المجموع الكلي للمصروفات");
+            "المجموع الكلي للمصروفات",
+            "حسابات شركة",
+            "حساب شركة",
+            "حسابات",
+            "حساب");
 
         if (!string.IsNullOrWhiteSpace(value))
         {
@@ -460,7 +502,8 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         string cleanedValue = Regex.Replace(value, @"[?.!,;]+$", string.Empty).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(to|for|mr\.?|mrs\.?|ms\.?|person|account|category)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(الى|إلى|ل|لل|السيد|السيح|سيد|دكتور|الدكتور|أستاذ|استاذ|شخص|حساب|تبويب|باب|محاسبي)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
-        cleanedValue = Regex.Replace(cleanedValue, @"^(حسابات|الحسابات|حساب|الحساب)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(حسابات|الحسابات|حساب|الحساب|شركة|الشركة)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"\s+(كل الاعوام|كل الأعوام|لكل الاعوام|لكل الأعوام|كل السنوات|لكل السنوات|حسب السنوات|حسب السنين|لكل الاعوام الدراسية|لكل الأعوام الدراسية|لكل سنة دراسية|سنة دراسية|الدراسية|المدين|الدائن)(\s+.*)?$", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(please|pls|من فضلك|لو سمحت|رجاء)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         return cleanedValue;
     }
@@ -565,7 +608,12 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("المجموع الكلي لحسابات شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
             Sample("المصاريف الكلية لحسابات شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
             Sample("المصاريف الكلية لشمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
-            Sample("المصاريف الكلية شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal)
+            Sample("المصاريف الكلية شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("حساب الروان", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("حساب شركة الروان", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("حساب شركة روان كل الاعوام", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("حساب شركة الروان لكل الاعوام الدراسية المدين و الدائن", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("حساب شركة شمس المحبة حسب السنوات", ExpenseChatbotQueryType.AccountingExpensesTotal)
         };
     }
 

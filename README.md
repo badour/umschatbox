@@ -129,6 +129,11 @@ Examples:
 المصاريف الكلية لحسابات شمس المحبة
 المصاريف الكلية لشمس المحبة
 المصاريف الكلية شمس المحبة
+حساب الروان
+حساب شركة الروان
+حساب شركة روان كل الاعوام
+حساب شركة الروان لكل الاعوام الدراسية المدين و الدائن
+حساب شركة شمس المحبة حسب السنوات
 ```
 
 Intent:
@@ -143,6 +148,7 @@ Procedure:
 dbo.Chatbot_GetAccountingExpensesTotal @SearchText = '3314'
 dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'احمد'
 dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'شمس المحبة'
+dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'شمس المحبة|academic_years'
 ```
 
 Logic:
@@ -153,6 +159,8 @@ Specific account code: `FromAccountID` starts with the extracted account code.
 Specific account name: search `ToAccountName`.
 Specific descriptive text/person: search `DocTitl`, `DocDetails`, `AddedBy`, and `DepartmentName`.
 Then calculate total, net, average, minimum, maximum, and square-root values from `DebetValue` and `CreditValue`.
+If the user asks for `كل الاعوام الدراسية`, `المدين و الدائن`, or `حسب السنوات`, the procedure groups by
+academic year. Academic years are calculated from September 1 to August 31.
 ```
 
 ## Files
