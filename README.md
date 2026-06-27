@@ -124,6 +124,11 @@ Examples:
 ```text
 المجموع الكلي للمصروفات لتبويب محاسبي 3314
 المجموع الكلي للمصروفات لشخص احمد
+المجموع الكلي للمصاريف المستحقة
+المجموع الكلي لحسابات شمس المحبة
+المصاريف الكلية لحسابات شمس المحبة
+المصاريف الكلية لشمس المحبة
+المصاريف الكلية شمس المحبة
 ```
 
 Intent:
@@ -137,6 +142,7 @@ Procedure:
 ```sql
 dbo.Chatbot_GetAccountingExpensesTotal @SearchText = '3314'
 dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'احمد'
+dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'شمس المحبة'
 ```
 
 Logic:

@@ -212,6 +212,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
     private static string ExtractAccountingAnalyticsSearchValue(string question)
     {
+        string accountNameValue = ExtractArabicAccountNameSearchValue(question);
+        if (!string.IsNullOrWhiteSpace(accountNameValue))
+        {
+            return accountNameValue;
+        }
+
         string value = ExtractFromYearValue(question);
         if (!string.IsNullOrWhiteSpace(value))
         {
@@ -237,6 +243,12 @@ public sealed class ExpenseChatbotNaturalLanguageParser
             "account total for",
             "account name",
             "account",
+            "المجموع الكلي لحسابات",
+            "المجموع الكلي لحساب",
+            "المصاريف الكلية لحسابات",
+            "المصاريف الكلية لحساب",
+            "المصاريف الكلية ل",
+            "المصاريف الكلية",
             "expenses for person",
             "expenses for",
             "for person",
@@ -283,6 +295,37 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         return question;
     }
 
+    private static string ExtractArabicAccountNameSearchValue(string question)
+    {
+        string value = ExtractAfterPhrase(
+            question,
+            "المجموع الكلي لحسابات",
+            "المجموع الكلي لحساب",
+            "المصاريف الكلية لحسابات",
+            "المصاريف الكلية لحساب",
+            "المصاريف الكلية ل",
+            "المصاريف الكلية",
+            "المجموع الكلي للمصاريف",
+            "المجموع الكلي للمصروفات");
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+
+        Match totalForMatch = Regex.Match(
+            question,
+            @"^المجموع\s+الكلي\s+ل(?<value>.+)$",
+            RegexOptions.IgnoreCase);
+
+        if (totalForMatch.Success)
+        {
+            return CleanExtractedValue(totalForMatch.Groups["value"].Value);
+        }
+
+        return string.Empty;
+    }
+
     private static bool IsAccountRelatedExpensesQuestion(string question)
     {
         bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "مصاريف", "المصاريف", "المصروفات");
@@ -316,7 +359,8 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         bool hasTotalWord = ContainsAny(question, "total", "sum", "net", "value", "amount", "مجموع", "الكلي", "الكلية", "اجمالي", "إجمالي", "قيمة", "مبالغ");
         bool hasScopeWord = ContainsAny(question, "person", "account", "category", "شخص", "اسم", "حساب", "تبويب", "باب", "لشخص", "لتبويب", "المحاسبي");
 
-        return hasExpenseWord && (hasTotalWord || hasScopeWord);
+        return (hasExpenseWord && (hasTotalWord || hasScopeWord))
+            || (hasTotalWord && hasScopeWord);
     }
 
     private static string ExtractAccountCodeToken(string question)
@@ -416,6 +460,7 @@ public sealed class ExpenseChatbotNaturalLanguageParser
         string cleanedValue = Regex.Replace(value, @"[?.!,;]+$", string.Empty).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(to|for|mr\.?|mrs\.?|ms\.?|person|account|category)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"^(الى|إلى|ل|لل|السيد|السيح|سيد|دكتور|الدكتور|أستاذ|استاذ|شخص|حساب|تبويب|باب|محاسبي)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
+        cleanedValue = Regex.Replace(cleanedValue, @"^(حسابات|الحسابات|حساب|الحساب)\s+", string.Empty, RegexOptions.IgnoreCase).Trim();
         cleanedValue = Regex.Replace(cleanedValue, @"\s+(please|pls|من فضلك|لو سمحت|رجاء)$", string.Empty, RegexOptions.IgnoreCase).Trim();
         return cleanedValue;
     }
@@ -515,7 +560,12 @@ public sealed class ExpenseChatbotIntentClassifier
             Sample("اجمالي المصروفات للباب المحاسبي 3", ExpenseChatbotQueryType.AccountingExpensesTotal),
             Sample("total expenses for account 3314", ExpenseChatbotQueryType.AccountingExpensesTotal),
             Sample("show me expenses for Ahmed", ExpenseChatbotQueryType.AccountingExpensesTotal),
-            Sample("اعرض مصروفات احمد", ExpenseChatbotQueryType.AccountingExpensesTotal)
+            Sample("اعرض مصروفات احمد", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("المجموع الكلي للمصاريف المستحقة", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("المجموع الكلي لحسابات شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("المصاريف الكلية لحسابات شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("المصاريف الكلية لشمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal),
+            Sample("المصاريف الكلية شمس المحبة", ExpenseChatbotQueryType.AccountingExpensesTotal)
         };
     }
 
