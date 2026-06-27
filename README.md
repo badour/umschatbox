@@ -24,6 +24,14 @@ Relevant database columns:
 The UI has no query-type buttons. The user types a question, the bot classifies it, runs the matching
 stored procedure, then returns a text answer with reasoning.
 
+For account lookup:
+
+```text
+Account code search -> FromAccountID
+Account name search -> ToAccountName
+Description/details search -> DocDetails and DocTitl
+```
+
 ## Supported questions
 
 ### 1. Expenses related to a specific accounting account/category
@@ -49,8 +57,10 @@ dbo.Chatbot_GetAccountRelatedExpenses @SearchText = '3314'
 Logic:
 
 ```text
-Search FromAccountID, FromAccountName, DocTitl, and DocDetails.
-Sum DebetValue and CreditValue.
+If the user writes an account code, search `FromAccountID`.
+If the user writes an account name, search `ToAccountName`.
+If the user writes descriptive text, also search `DocDetails` and `DocTitl`.
+Then calculate total, net, average, minimum, maximum, and square-root values from `DebetValue` and `CreditValue`.
 ```
 
 ### 2. Total fixed assets
@@ -132,10 +142,11 @@ dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'احمد'
 Logic:
 
 ```text
-All expenses: FromAccountID starts with 3.
-Specific account: FromAccountID starts with the extracted account code.
-Specific person/name: search FromAccountName, ToAccountName, DocTitl, DocDetails, AddedBy, and DepartmentName.
-Sum DebetValue and CreditValue.
+All expenses: `FromAccountID` starts with `3`.
+Specific account code: `FromAccountID` starts with the extracted account code.
+Specific account name: search `ToAccountName`.
+Specific descriptive text/person: search `DocTitl`, `DocDetails`, `AddedBy`, and `DepartmentName`.
+Then calculate total, net, average, minimum, maximum, and square-root values from `DebetValue` and `CreditValue`.
 ```
 
 ## Files

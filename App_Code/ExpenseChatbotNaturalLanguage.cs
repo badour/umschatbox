@@ -232,9 +232,23 @@ public sealed class ExpenseChatbotNaturalLanguageParser
 
         value = ExtractAfterPhrase(
             question,
+            "expenses for account",
+            "total for account",
+            "account total for",
+            "account name",
+            "account",
             "expenses for person",
             "expenses for",
             "for person",
+            "المصروفات لحساب",
+            "المصاريف لحساب",
+            "المجموع الكلي لحساب",
+            "مجموع حساب",
+            "اسم الحساب",
+            "حساب",
+            "لتبويب محاسبي",
+            "لتبويب",
+            "تبويب محاسبي",
             "المصروفات لشخص",
             "المصاريف لشخص",
             "المصروفات للشخص",
@@ -273,9 +287,10 @@ public sealed class ExpenseChatbotNaturalLanguageParser
     {
         bool hasExpenseWord = ContainsAny(question, "expense", "expenses", "مصروف", "مصروفات", "مصاريف", "المصاريف", "المصروفات");
         bool hasRelatedWord = ContainsAny(question, "related", "account", "category", "maintenance", "المتعلقة", "المتعلقه", "حساب", "تبويب", "باب", "صيانة", "الصيانة");
-        bool hasSpecificAccount = !string.IsNullOrWhiteSpace(ExtractAccountCodeToken(question));
+        bool hasAccountReference = !string.IsNullOrWhiteSpace(ExtractAccountCodeToken(question))
+            || ContainsAny(question, "account", "حساب", "تبويب", "باب", "صيانة", "الصيانة");
 
-        return hasExpenseWord && hasRelatedWord && hasSpecificAccount;
+        return hasExpenseWord && hasRelatedWord && hasAccountReference;
     }
 
     private static bool IsFixedAssetsTotalQuestion(string question)

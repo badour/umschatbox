@@ -204,7 +204,7 @@ public static class ExpenseChatbotReasoningEngine
     private static void AddCategoryInsight(List<string> insights, DataTable results)
     {
         DataColumn accountCodeColumn = GetFirstColumnByName(results, "FromAccountID", "AccountPrefix", "TertiaryAccountCode");
-        DataColumn accountNameColumn = GetFirstColumnByName(results, "FromAccountName", "AccountName", "AnalysisType");
+        DataColumn accountNameColumn = GetFirstColumnByName(results, "ToAccountName", "AccountName", "AnalysisType");
 
         if (accountCodeColumn != null)
         {
@@ -220,7 +220,7 @@ public static class ExpenseChatbotReasoningEngine
     private static List<string> BuildRowDetails(ExpenseChatbotQueryType queryType, DataTable results)
     {
         List<string> details = new List<string>();
-        DataColumn labelColumn = GetFirstColumnByName(results, "FromAccountName", "AnalysisType", "AccountPrefix", "FromAccountID", "SearchText");
+        DataColumn labelColumn = GetFirstColumnByName(results, "ToAccountName", "AnalysisType", "AccountPrefix", "FromAccountID", "SearchText");
         NumericColumnProfile primaryMetric = GetPrimaryMetricProfile(queryType, results);
 
         int maxRows = Math.Min(results.Rows.Count, 8);
