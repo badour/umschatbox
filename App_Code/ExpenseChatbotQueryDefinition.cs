@@ -49,47 +49,61 @@ public sealed class ExpenseChatbotQueryDefinition
     {
         switch (queryType)
         {
-            case ExpenseChatbotQueryType.FileLinks:
+            case ExpenseChatbotQueryType.AccountRelatedExpenses:
                 return new ExpenseChatbotQueryDefinition(
                     queryType,
-                    "Find file links",
-                    "Invoice number, expense code, file name, or other search text",
-                    "Example: INV-10045 or receipt.pdf",
-                    "Enter a search value so I can look for matching file links.",
-                    "I found {0} file link result(s).",
-                    "I could not find any file links for that search.",
-                    "ExpenseChatbot.FileLinks.StoredProcedure",
-                    "dbo.Chatbot_GetFileLinks",
-                    "ExpenseChatbot.FileLinks.ParameterName",
+                    "Analyze expenses for an accounting account",
+                    "Account code or account name",
+                    "Example: المصاريف المتعلقة بالصيانة السيارات 3314",
+                    "Ask about expenses related to an accounting account or category.",
+                    "I calculated {0} account-related expense result(s).",
+                    "I could not calculate expenses for that accounting account.",
+                    "ExpenseChatbot.AccountRelatedExpenses.StoredProcedure",
+                    "dbo.Chatbot_GetAccountRelatedExpenses",
+                    "ExpenseChatbot.AccountRelatedExpenses.ParameterName",
                     "@SearchText");
 
-            case ExpenseChatbotQueryType.InvoiceExpenseCode:
+            case ExpenseChatbotQueryType.FixedAssetsTotal:
                 return new ExpenseChatbotQueryDefinition(
                     queryType,
-                    "Find expense code by invoice",
-                    "Invoice number",
-                    "Example: INV-10045",
-                    "Enter an invoice number so I can look up its expense code details.",
-                    "I found {0} expense code result(s) for that invoice.",
-                    "I could not find expense code details for that invoice.",
-                    "ExpenseChatbot.InvoiceExpenseCode.StoredProcedure",
-                    "dbo.Chatbot_GetInvoiceExpenseCodes",
-                    "ExpenseChatbot.InvoiceExpenseCode.ParameterName",
-                    "@InvoiceNumber");
+                    "Analyze total fixed assets",
+                    "Period or all-years fixed-assets question",
+                    "Example: المجموع الكلي للموجودات الثابتة للكلية لكل السنوات",
+                    "Ask about total fixed assets for a period or all years.",
+                    "I calculated {0} fixed-assets total result(s).",
+                    "I could not calculate total fixed assets.",
+                    "ExpenseChatbot.FixedAssetsTotal.StoredProcedure",
+                    "dbo.Chatbot_GetFixedAssetsTotal",
+                    "ExpenseChatbot.FixedAssetsTotal.ParameterName",
+                    "@SearchText");
 
-            case ExpenseChatbotQueryType.PersonExpenses:
+            case ExpenseChatbotQueryType.BuildingsTotal:
                 return new ExpenseChatbotQueryDefinition(
                     queryType,
-                    "Find expenses by person",
-                    "Person name, employee number, or user id",
-                    "Example: Aisha Khan",
-                    "Enter a person name or id so I can look up related expenses.",
-                    "I found {0} expense result(s) for that person.",
-                    "I could not find expenses related to that person.",
-                    "ExpenseChatbot.PersonExpenses.StoredProcedure",
-                    "dbo.Chatbot_GetPersonExpenses",
-                    "ExpenseChatbot.PersonExpenses.ParameterName",
-                    "@PersonName");
+                    "Analyze total buildings",
+                    "Period or all-years buildings question",
+                    "Example: المجموع الكلي للمباني للكلية لكل الاعوام",
+                    "Ask about total buildings for a period or all years.",
+                    "I calculated {0} buildings total result(s).",
+                    "I could not calculate total buildings.",
+                    "ExpenseChatbot.BuildingsTotal.StoredProcedure",
+                    "dbo.Chatbot_GetBuildingsTotal",
+                    "ExpenseChatbot.BuildingsTotal.ParameterName",
+                    "@SearchText");
+
+            case ExpenseChatbotQueryType.AccountingExpensesTotal:
+                return new ExpenseChatbotQueryDefinition(
+                    queryType,
+                    "Analyze total accounting expenses",
+                    "Person, account code, account name, period, or all expenses question",
+                    "Example: المجموع الكلي للمصروفات لتبويب محاسبي 3314",
+                    "Ask about total expenses for all expenses, a person, or an accounting code.",
+                    "I calculated {0} accounting expense total result(s).",
+                    "I could not calculate accounting expenses for that question.",
+                    "ExpenseChatbot.AccountingExpensesTotal.StoredProcedure",
+                    "dbo.Chatbot_GetAccountingExpensesTotal",
+                    "ExpenseChatbot.AccountingExpensesTotal.ParameterName",
+                    "@SearchText");
 
             default:
                 throw new ArgumentOutOfRangeException("queryType");

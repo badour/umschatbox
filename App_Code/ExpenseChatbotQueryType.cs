@@ -1,6 +1,7 @@
 public enum ExpenseChatbotQueryType
 {
-    FileLinks,
-    InvoiceExpenseCode,
-    PersonExpenses
+    AccountRelatedExpenses,
+    FixedAssetsTotal,
+    BuildingsTotal,
+    AccountingExpensesTotal
 }

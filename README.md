@@ -1,134 +1,203 @@
-# Expenses WebForms Chatbot
+# ExpencesAccDocSum Accounting Chatbot
 
-This repository contains a drop-in ASP.NET WebForms chatbot module for an expenses application.
-Users can type natural-language questions, and the page also keeps three guided buttons as a fallback:
+This chatbot is a single-prompt ASP.NET WebForms assistant for `adminmodeluniversitiy`.
+It answers natural-language Arabic/English accounting questions by querying only:
 
-- Find file links
-- Find expense code details for a specific invoice
-- Find expenses related to a specific person
+```text
+dbo.ExpencesAccDocSum
+```
 
-The module uses ML.NET to classify the user's intent, simple extraction rules to pull out the search
-value, and parameterized SQL stored procedure calls through ADO.NET to query the database.
+Relevant database columns:
+
+- `date`
+- `DocTitl`
+- `DocDetails`
+- `DebetValue`
+- `CreditValue`
+- `FromAccountID`
+- `FromAccountName`
+- `ToAccountName`
+- `AddedBy`
+- `YearName`
+- `DepartmentName`
+
+The UI has no query-type buttons. The user types a question, the bot classifies it, runs the matching
+stored procedure, then returns a text answer with reasoning.
+
+For account lookup:
+
+```text
+Account code search -> FromAccountID
+Account name search -> ToAccountName
+Description/details search -> DocDetails and DocTitl
+```
+
+## Supported questions
+
+### 1. Expenses related to a specific accounting account/category
 
 Example:
 
 ```text
-User: show me expenses for Ahmed
-Intent detected by ML.NET: PersonExpenses
-Search value extracted by rules: Ahmed
-SQL procedure called: dbo.Chatbot_GetPersonExpenses @PersonName = 'Ahmed'
+المصاريف المتعلقة بالصيانة السيارات 3314
+```
+
+Intent:
+
+```text
+AccountRelatedExpenses
+```
+
+Procedure:
+
+```sql
+dbo.Chatbot_GetAccountRelatedExpenses @SearchText = '3314'
+```
+
+Logic:
+
+```text
+If the user writes an account code, search `FromAccountID`.
+If the user writes an account name, search `ToAccountName`.
+If the user writes descriptive text, also search `DocDetails` and `DocTitl`.
+Then calculate total, net, average, minimum, maximum, and square-root values from `DebetValue` and `CreditValue`.
+```
+
+### 2. Total fixed assets
+
+Example:
+
+```text
+المجموع الكلي للموجودات الثابتة للكلية لكل السنوات
+```
+
+Intent:
+
+```text
+FixedAssetsTotal
+```
+
+Procedure:
+
+```sql
+dbo.Chatbot_GetFixedAssetsTotal @SearchText = 'all years'
+```
+
+Logic:
+
+```text
+Use rows where FromAccountID starts with 1.
+Sum DebetValue and CreditValue.
+```
+
+### 3. Total buildings
+
+Example:
+
+```text
+المجموع الكلي للمباني للكلية لكل الاعوام
+```
+
+Intent:
+
+```text
+BuildingsTotal
+```
+
+Procedure:
+
+```sql
+dbo.Chatbot_GetBuildingsTotal @SearchText = 'all years'
+```
+
+Logic:
+
+```text
+Use rows where FromAccountID starts with 112.
+Sum DebetValue and CreditValue.
+```
+
+### 4. Total expenses
+
+Examples:
+
+```text
+المجموع الكلي للمصروفات لتبويب محاسبي 3314
+المجموع الكلي للمصروفات لشخص احمد
+المجموع الكلي للمصاريف المستحقة
+المجموع الكلي لحسابات شمس المحبة
+المصاريف الكلية لحسابات شمس المحبة
+المصاريف الكلية لشمس المحبة
+المصاريف الكلية شمس المحبة
+حساب الروان
+حساب شركة الروان
+حساب شركة روان كل الاعوام
+حساب شركة الروان لكل الاعوام الدراسية المدين و الدائن
+حساب شركة شمس المحبة حسب السنوات
+```
+
+Intent:
+
+```text
+AccountingExpensesTotal
+```
+
+Procedure:
+
+```sql
+dbo.Chatbot_GetAccountingExpensesTotal @SearchText = '3314'
+dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'احمد'
+dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'شمس المحبة'
+dbo.Chatbot_GetAccountingExpensesTotal @SearchText = 'شمس المحبة|academic_years'
+```
+
+Logic:
+
+```text
+All expenses: `FromAccountID` starts with `3`.
+Specific account code: `FromAccountID` starts with the extracted account code.
+Specific account name: search `ToAccountName`.
+Specific descriptive text/person: search `DocTitl`, `DocDetails`, `AddedBy`, and `DepartmentName`.
+Then calculate total, net, average, minimum, maximum, and square-root values from `DebetValue` and `CreditValue`.
+If the user asks for `كل الاعوام الدراسية`, `المدين و الدائن`, or `حسب السنوات`, the procedure groups by
+academic year. Academic years are calculated from September 1 to August 31.
 ```
 
 ## Files
 
-- `ChatBot/ExpensesChatBot.aspx` - WebForms chatbot page and UI.
-- `ChatBot/ExpensesChatBot.aspx.cs` - page event handlers, button selection, and result binding.
-- `App_Code/ExpenseChatbot*.cs` - query definitions, configuration, SQL repository, and service logic.
-- `App_Code/ExpenseChatbotNaturalLanguage.cs` - ML.NET intent classifier and natural-language value extraction.
-- `docs/Web.config.chatbot.example.config` - Web.config connection string and appSettings example.
-- `docs/sql/chatbot-procedures-template.sql` - SQL stored procedure templates to adapt to your schema.
+- `ChatBot/ExpensesChatBot.aspx` - single-prompt chatbot page.
+- `ChatBot/ExpensesChatBot.aspx.cs` - request handling and result binding.
+- `App_Code/ExpenseChatbotNaturalLanguage.cs` - Arabic/English intent classification and value extraction.
+- `App_Code/ExpenseChatbotQueryDefinition.cs` - intent-to-stored-procedure mapping.
+- `App_Code/ExpenseChatbotRepository.cs` - SQL execution.
+- `App_Code/ExpenseChatbotService.cs` - chatbot orchestration.
+- `App_Code/ExpenseChatbotReasoningEngine.cs` - text answer and analytics reasoning.
+- `docs/Web.config.chatbot.example.config` - Web.config keys.
+- `docs/sql/chatbot-procedures-template.sql` - SQL procedure templates.
 
-## Integration steps
-
-1. Copy the `App_Code` files into the root `App_Code` folder of the existing WebForms site.
-   - For a Web Application project, include the `.cs` files in the project and change the page directive
-     from `CodeFile` to `CodeBehind` if that is how the project is structured.
-2. Confirm the application references ML.NET (`Microsoft.ML`). The natural-language classifier uses this package.
-3. Copy `ChatBot/ExpensesChatBot.aspx` and `ChatBot/ExpensesChatBot.aspx.cs` into the application.
-   - If the existing app uses a master page, move the markup inside the appropriate `<asp:Content>` blocks.
-4. Copy the relevant entries from `docs/Web.config.chatbot.example.config` into the existing `Web.config`.
-5. Adapt and run `docs/sql/chatbot-procedures-template.sql` against the expenses database.
-   - Replace the sample table names (`ExpenseFiles`, `Expenses`, `People`) and column names with the real schema.
-6. Add a menu item or hyperlink in the existing app that points to `ChatBot/ExpensesChatBot.aspx`.
-7. Restrict access to the chatbot page using the same authentication/authorization rules as the expenses pages.
-
-## Natural-language examples
-
-These examples are classified automatically:
-
-- `show me expenses for Ahmed` -> `PersonExpenses`, search value `Ahmed`
-- `list expenses submitted by employee Sara` -> `PersonExpenses`, search value `Sara`
-- `what is the expense code for invoice INV-10045` -> `InvoiceExpenseCode`, search value `INV-10045`
-- `find file links for receipt.pdf` -> `FileLinks`, search value `receipt.pdf`
-- `ابحث عن ملف رقم المستند 12345` -> `FileLinks`, search value `12345`
-- `ابحث عن المستند رقم 42 لسنة 2024-2025` -> `FileLinks`, search value `42 لسنة 2024-2025`
-- `اعرض الملفات بالتكلفة 1500` -> `FileLinks`, search value `1500`
-- `هات مرفق بتاريخ 2024-05-10` -> `FileLinks`, search value `2024-05-10`
-
-If a user types only a direct value, such as `INV-10045`, the selected button is used as the fallback query type.
-
-For the `adminmodeluniversitiy` app, the file-link query should search `dbo.UploadExpenseIncome`.
-The `@SearchText` value can match document number, file path, document type, date, and any notes/cost
-columns you add to `dbo.Chatbot_GetFileLinks`.
-For phrases like `ابحث عن المستند رقم 42 لسنة 2024-2025`, the parser sends `42 لسنة 2024-2025`;
-the SQL template splits it into document number `42` and document/academic year `2024-2025`.
-
-## Configuration
-
-By default for `adminmodeluniversitiy`, the chatbot expects a connection string named `generalUniversityDB`
-and these stored procedures:
-
-- `dbo.Chatbot_GetFileLinks @SearchText`
-- `dbo.Chatbot_GetInvoiceExpenseCodes @InvoiceNumber`
-- `dbo.Chatbot_GetPersonExpenses @PersonName`
-
-You can override the connection string name, stored procedure names, parameter names, command timeout,
-max displayed rows, and ML.NET intent confidence threshold through `appSettings` in `Web.config`.
-
-## Troubleshooting the red error message
-
-If the page shows:
-
-```text
-I could not complete that query. Please check the chatbot configuration or contact support.
-```
-
-or a `Chatbot database error`, the natural-language part already worked, but the database call failed.
-Check these items:
-
-1. `Web.config` has a real connection string for your expenses database.
-
-   ```xml
-   <connectionStrings>
-     <add name="generalUniversityDB"
-          connectionString="Data Source=DESKTOP-2OC4RDU;Initial Catalog=UniversityDBiap;Integrated Security=True;TrustServerCertificate=True;"
-          providerName="System.Data.SqlClient" />
-   </connectionStrings>
-   ```
-
-2. The chatbot app setting points to that connection string.
-
-   ```xml
-   <add key="ExpenseChatbot.ConnectionStringName" value="generalUniversityDB" />
-   ```
-
-3. The stored procedure for the selected intent exists in the same database.
-
-   For `find file links for receipt.pdf`, the code calls:
-
-   ```sql
-   dbo.Chatbot_GetFileLinks @SearchText = 'receipt.pdf'
-   ```
-
-4. The application database user has permission to execute the stored procedure.
-
-   ```sql
-   GRANT EXECUTE ON dbo.Chatbot_GetFileLinks TO [YourAppUser];
-   ```
-
-During local setup only, you can temporarily enable detailed errors:
+## Web.config keys
 
 ```xml
-<add key="ExpenseChatbot.ShowDetailedErrors" value="true" />
+<add key="ExpenseChatbot.AccountRelatedExpenses.StoredProcedure" value="dbo.Chatbot_GetAccountRelatedExpenses" />
+<add key="ExpenseChatbot.AccountRelatedExpenses.ParameterName" value="@SearchText" />
+
+<add key="ExpenseChatbot.FixedAssetsTotal.StoredProcedure" value="dbo.Chatbot_GetFixedAssetsTotal" />
+<add key="ExpenseChatbot.FixedAssetsTotal.ParameterName" value="@SearchText" />
+
+<add key="ExpenseChatbot.BuildingsTotal.StoredProcedure" value="dbo.Chatbot_GetBuildingsTotal" />
+<add key="ExpenseChatbot.BuildingsTotal.ParameterName" value="@SearchText" />
+
+<add key="ExpenseChatbot.AccountingExpensesTotal.StoredProcedure" value="dbo.Chatbot_GetAccountingExpensesTotal" />
+<add key="ExpenseChatbot.AccountingExpensesTotal.ParameterName" value="@SearchText" />
 ```
 
-Set it back to `false` before production use.
+## Response behavior
 
-## Security notes
+- If the question has no time period, the bot returns the main total/net number.
+- If the question includes a period or year, the bot gives a detailed text explanation.
+- Responses are text-only; the page does not render a GridView/table in this version.
 
-- User input is sent to SQL Server as parameters, not string-concatenated SQL.
-- Result text is HTML-encoded by WebForms controls.
-- Columns whose names look like links or URLs are rendered as clickable links only for safe relative,
-  `http`, or `https` values.
-- Prefer granting the application login `EXECUTE` permission on the chatbot procedures instead of direct
-  table access.
+## Notes
+
+- The current scope intentionally excludes file URL search, invoice-code lookup, student revenue, and unrelated tables.
+- All accounting procedures in this version are based on `dbo.ExpencesAccDocSum`.

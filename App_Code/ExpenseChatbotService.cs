@@ -24,6 +24,11 @@ public sealed class ExpenseChatbotService
 
     public ExpenseChatbotResponse Ask(ExpenseChatbotQueryType queryType, string input)
     {
+        return AskInternal(queryType, input, false, false);
+    }
+
+    private ExpenseChatbotResponse AskInternal(ExpenseChatbotQueryType queryType, string input, bool textOnlyResponse, bool hasTimePeriod)
+    {
         ExpenseChatbotQueryDefinition definition = ExpenseChatbotQueryDefinition.FromType(queryType);
         string normalizedInput = NormalizeInput(input);
 
@@ -43,12 +48,26 @@ public sealed class ExpenseChatbotService
             }
 
             int maxRows = ExpenseChatbotConfig.GetMaxRows();
-            DataTable displayResults = LimitRows(results, maxRows);
+            DataTable displayResults = textOnlyResponse ? null : LimitRows(results, maxRows);
             string message = string.Format(definition.FoundMessage, originalRowCount);
+            string analysis = textOnlyResponse ? string.Empty : BuildReasoningAnalysis(queryType, results, originalRowCount);
 
-            if (originalRowCount > maxRows)
+            if (textOnlyResponse)
+            {
+                message = ExpenseChatbotReasoningEngine.BuildConversationalAnswer(
+                    queryType,
+                    results,
+                    originalRowCount,
+                    hasTimePeriod);
+            }
+            else if (originalRowCount > maxRows)
             {
                 message += string.Format(" Showing the first {0} result(s).", maxRows);
+            }
+
+            if (!textOnlyResponse && !string.IsNullOrWhiteSpace(analysis))
+            {
+                message += "\n\n" + analysis;
             }
 
             return new ExpenseChatbotResponse(message, displayResults, false);
@@ -104,7 +123,8 @@ public sealed class ExpenseChatbotService
             return new ExpenseChatbotResponse(emptyMessage, null, false);
         }
 
-        ExpenseChatbotResponse response = Ask(request.QueryType, request.SearchValue);
+        bool hasTimePeriod = HasTimePeriod(request);
+        ExpenseChatbotResponse response = AskInternal(request.QueryType, request.SearchValue, true, hasTimePeriod);
 
         if (response.IsError)
         {
@@ -112,7 +132,7 @@ public sealed class ExpenseChatbotService
         }
 
         string messagePrefix = request.UsedNaturalLanguage
-            ? string.Format("I understood your question as '{0}' and searched for '{1}'. ", definition.Title, request.SearchValue)
+            ? string.Format("I understood your question as '{0}' and searched for '{1}'. ", definition.Title, CleanSearchValueForDisplay(request.SearchValue))
             : string.Empty;
 
         return new ExpenseChatbotResponse(messagePrefix + response.Message, response.Results, response.IsError);
@@ -123,6 +143,53 @@ public sealed class ExpenseChatbotService
         return _repository ?? new ExpenseChatbotRepository();
     }
 
+    private static bool HasTimePeriod(ExpenseChatbotNaturalLanguageRequest request)
+    {
+        if (request == null)
+        {
+            return false;
+        }
+
+        string text = ((request.OriginalQuestion ?? string.Empty) + " " + (request.SearchValue ?? string.Empty)).ToLowerInvariant();
+
+        return text.Contains("last ")
+            || text.Contains("past ")
+            || text.Contains("from ")
+            || text.Contains("year")
+            || text.Contains("academic")
+            || text.Contains("20")
+            || text.Contains("19")
+            || text.Contains("اخر")
+            || text.Contains("آخر")
+            || text.Contains("سنة")
+            || text.Contains("سنوات")
+            || text.Contains("اعوام")
+            || text.Contains("أعوام")
+            || text.Contains("الاعوام")
+            || text.Contains("الأعوام")
+            || text.Contains("الدراسية")
+            || text.Contains("من ")
+            || text.Contains("حتى");
+    }
+
+    private static string CleanSearchValueForDisplay(string searchValue)
+    {
+        return (searchValue ?? string.Empty).Replace("|academic_years", string.Empty).Trim();
+    }
+
+    private static string BuildReasoningAnalysis(ExpenseChatbotQueryType queryType, DataTable results, int originalRowCount)
+    {
+        try
+        {
+            return ExpenseChatbotReasoningEngine.BuildAnalysis(queryType, results, originalRowCount);
+        }
+        catch (Exception exception)
+        {
+            TraceException(exception);
+            return string.Empty;
+        }
+    }
+
     public static bool TryParseQueryType(string value, out ExpenseChatbotQueryType queryType)
     {
         if (Enum.TryParse(value, true, out queryType) && Enum.IsDefined(typeof(ExpenseChatbotQueryType), queryType))
@@ -130,7 +197,7 @@ public sealed class ExpenseChatbotService
             return true;
         }
 
-        queryType = ExpenseChatbotQueryType.FileLinks;
+        queryType = ExpenseChatbotQueryType.AccountingExpensesTotal;
         return false;
     }
 

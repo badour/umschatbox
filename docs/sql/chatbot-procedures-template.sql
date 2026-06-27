@@ -1,106 +1,219 @@
 /*
-    Expenses Chatbot stored procedure templates
+    Accounting analytics chatbot procedures
 
-    Replace the table and column names below with the names from your expenses database.
-    The WebForms page calls these procedures with parameterized ADO.NET commands.
+    These procedures are scoped to the user's latest request and use only:
+    dbo.ExpencesAccDocSum
+
+    Relevant columns:
+    - [date]
+    - DocTitl
+    - DocDetails
+    - DebetValue
+    - CreditValue
+    - FromAccountID
+    - ToAccountName
+    - AddedBy
+    - YearName
+    - DepartmentName
+
+    Account lookup rules:
+    - User account code -> FromAccountID
+    - User account name -> ToAccountName
+    - User descriptive text -> DocDetails and DocTitl
+    - Values -> DebetValue and CreditValue
+    - Academic-year grouping marker -> |academic_years
+      Academic year starts on September 1 and ends on August 31.
 */
 
-CREATE OR ALTER PROCEDURE dbo.Chatbot_GetFileLinks
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetAccountRelatedExpenses
     @SearchText NVARCHAR(200)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @NormalizedSearch NVARCHAR(200) = LTRIM(RTRIM(@SearchText));
-    DECLARE @DocumentNumber NVARCHAR(50) = NULL;
-    DECLARE @DocumentYear NVARCHAR(50) = NULL;
-    DECLARE @YearMarker INT = CHARINDEX(N'لسنة', @NormalizedSearch);
+    DECLARE @Search NVARCHAR(200) = LTRIM(RTRIM(ISNULL(@SearchText, N'')));
 
-    -- Supports Arabic input like: 42 لسنة 2024-2025
-    IF @YearMarker > 0
+    SELECT
+        MAX(FromAccountID) AS FromAccountID,
+        MAX(ToAccountName) AS ToAccountName,
+        COUNT_BIG(*) AS TransactionCount,
+        MIN([date]) AS PeriodStart,
+        MAX([date]) AS PeriodEnd,
+        SUM(ISNULL(DebetValue, 0)) AS TotalDebetValue,
+        SUM(ISNULL(CreditValue, 0)) AS TotalCreditValue,
+        SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS TotalAccountingValue,
+        SUM(ISNULL(DebetValue, 0) - ISNULL(CreditValue, 0)) AS NetAccountingValue,
+        AVG(CAST(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0) AS DECIMAL(18, 2))) AS AverageAccountingValue,
+        MIN(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MinimumAccountingValue,
+        MAX(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MaximumAccountingValue,
+        SQRT(ABS(CONVERT(FLOAT, SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0))))) AS SquareRootTotalValue
+    FROM dbo.ExpencesAccDocSum
+    WHERE FromAccountID LIKE @Search + N'%'
+       OR ToAccountName LIKE N'%' + @Search + N'%'
+       OR DocTitl LIKE N'%' + @Search + N'%'
+       OR CAST(DocDetails AS NVARCHAR(MAX)) LIKE N'%' + @Search + N'%';
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetFixedAssetsTotal
+    @SearchText NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @NormalizedSearch NVARCHAR(200) = LOWER(LTRIM(RTRIM(ISNULL(@SearchText, N''))));
+    DECLARE @StartDate DATE = NULL;
+    DECLARE @EndDate DATE = CAST(GETDATE() AS DATE);
+    DECLARE @YearPosition INT = PATINDEX('%[12][0-9][0-9][0-9]%', @NormalizedSearch);
+
+    IF @YearPosition > 0
     BEGIN
-        SET @DocumentNumber = LTRIM(RTRIM(LEFT(@NormalizedSearch, @YearMarker - 1)));
-        SET @DocumentYear = LTRIM(RTRIM(SUBSTRING(@NormalizedSearch, @YearMarker + LEN(N'لسنة'), 50)));
+        SET @StartDate = DATEFROMPARTS(TRY_CONVERT(INT, SUBSTRING(@NormalizedSearch, @YearPosition, 4)), 1, 1);
     END;
 
-    SELECT TOP (50)
-        f.DocNum,
-        f.[date],
-        f.FilePath,
-        f.DocType
-        -- Add these columns if they exist in your table:
-        --, f.FileName
-        --, f.FileNotes
-        --, f.TotalCost
-    FROM dbo.UploadExpenseIncome AS f
-    WHERE CAST(f.DocNum AS NVARCHAR(200)) LIKE '%' + @NormalizedSearch + '%'
-       OR CONVERT(NVARCHAR(30), f.[date], 23) LIKE '%' + @NormalizedSearch + '%'
-       OR f.FilePath LIKE '%' + @NormalizedSearch + '%'
-       OR f.DocType LIKE '%' + @NormalizedSearch + '%'
-       OR (
-            @DocumentNumber IS NOT NULL
-            AND @DocumentYear IS NOT NULL
-            AND CAST(f.DocNum AS NVARCHAR(200)) = @DocumentNumber
-            AND (
-                -- Best option: uncomment and rename if your table has an academic/fiscal year column.
-                -- f.AcademicYear = @DocumentYear
-                -- OR
-                f.FilePath LIKE '%' + @DocumentYear + '%'
-                OR f.DocType LIKE '%' + @DocumentYear + '%'
-                OR CONVERT(NVARCHAR(30), f.[date], 23) LIKE LEFT(@DocumentYear, 4) + '%'
-            )
-       )
-       -- Uncomment and rename these columns if your table has them:
-       -- OR f.FileName LIKE '%' + @NormalizedSearch + '%'
-       -- OR f.FileNotes LIKE '%' + @NormalizedSearch + '%'
-       -- OR CAST(f.TotalCost AS NVARCHAR(200)) LIKE '%' + @NormalizedSearch + '%'
-       -- OR f.AcademicYear LIKE '%' + @NormalizedSearch + '%'
-    ORDER BY f.[date] DESC;
+    SELECT
+        N'1' AS AccountPrefix,
+        N'Fixed assets / الموجودات الثابتة' AS AnalysisType,
+        COUNT_BIG(*) AS TransactionCount,
+        MIN([date]) AS PeriodStart,
+        MAX([date]) AS PeriodEnd,
+        SUM(ISNULL(DebetValue, 0)) AS TotalDebetValue,
+        SUM(ISNULL(CreditValue, 0)) AS TotalCreditValue,
+        SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS TotalFixedAssetsValue,
+        SUM(ISNULL(DebetValue, 0) - ISNULL(CreditValue, 0)) AS NetFixedAssetsValue,
+        AVG(CAST(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0) AS DECIMAL(18, 2))) AS AverageFixedAssetsValue,
+        MIN(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MinimumFixedAssetsValue,
+        MAX(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MaximumFixedAssetsValue,
+        SQRT(ABS(CONVERT(FLOAT, SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0))))) AS SquareRootTotalValue
+    FROM dbo.ExpencesAccDocSum
+    WHERE FromAccountID LIKE N'1%'
+      AND (@StartDate IS NULL OR ([date] >= @StartDate AND [date] < DATEADD(DAY, 1, @EndDate)));
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Chatbot_GetInvoiceExpenseCodes
-    @InvoiceNumber NVARCHAR(200)
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetBuildingsTotal
+    @SearchText NVARCHAR(200)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT TOP (50)
-        e.InvoiceNumber,
-        e.ExpenseCode,
-        e.ExpenseDescription,
-        e.Amount,
-        e.CurrencyCode,
-        e.ExpenseDate,
-        e.Status
-    FROM dbo.Expenses AS e
-    WHERE e.InvoiceNumber = @InvoiceNumber
-    ORDER BY e.ExpenseDate DESC;
+    DECLARE @NormalizedSearch NVARCHAR(200) = LOWER(LTRIM(RTRIM(ISNULL(@SearchText, N''))));
+    DECLARE @StartDate DATE = NULL;
+    DECLARE @EndDate DATE = CAST(GETDATE() AS DATE);
+    DECLARE @YearPosition INT = PATINDEX('%[12][0-9][0-9][0-9]%', @NormalizedSearch);
+
+    IF @YearPosition > 0
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(TRY_CONVERT(INT, SUBSTRING(@NormalizedSearch, @YearPosition, 4)), 1, 1);
+    END;
+
+    SELECT
+        N'112' AS AccountPrefix,
+        N'Buildings / المباني' AS AnalysisType,
+        COUNT_BIG(*) AS TransactionCount,
+        MIN([date]) AS PeriodStart,
+        MAX([date]) AS PeriodEnd,
+        SUM(ISNULL(DebetValue, 0)) AS TotalDebetValue,
+        SUM(ISNULL(CreditValue, 0)) AS TotalCreditValue,
+        SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS TotalBuildingsValue,
+        SUM(ISNULL(DebetValue, 0) - ISNULL(CreditValue, 0)) AS NetBuildingsValue,
+        AVG(CAST(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0) AS DECIMAL(18, 2))) AS AverageBuildingsValue,
+        MIN(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MinimumBuildingsValue,
+        MAX(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MaximumBuildingsValue,
+        SQRT(ABS(CONVERT(FLOAT, SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0))))) AS SquareRootTotalValue
+    FROM dbo.ExpencesAccDocSum
+    WHERE FromAccountID LIKE N'112%'
+      AND (@StartDate IS NULL OR ([date] >= @StartDate AND [date] < DATEADD(DAY, 1, @EndDate)));
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.Chatbot_GetPersonExpenses
-    @PersonName NVARCHAR(200)
+CREATE OR ALTER PROCEDURE dbo.Chatbot_GetAccountingExpensesTotal
+    @SearchText NVARCHAR(200)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT TOP (50)
-        p.DisplayName,
-        p.EmployeeNumber,
-        e.InvoiceNumber,
-        e.ExpenseCode,
-        e.ExpenseDescription,
-        e.Amount,
-        e.CurrencyCode,
-        e.ExpenseDate,
-        e.Status
-    FROM dbo.Expenses AS e
-    INNER JOIN dbo.People AS p
-        ON p.PersonId = e.PersonId
-    WHERE p.DisplayName LIKE '%' + @PersonName + '%'
-       OR p.EmployeeNumber = @PersonName
-       OR p.UserName = @PersonName
-    ORDER BY e.ExpenseDate DESC;
+    DECLARE @Search NVARCHAR(200) = LTRIM(RTRIM(ISNULL(@SearchText, N'')));
+    DECLARE @NormalizedSearch NVARCHAR(200) = LOWER(@Search);
+    DECLARE @AccountCode NVARCHAR(50) = NULL;
+    DECLARE @StartDate DATE = NULL;
+    DECLARE @EndDate DATE = CAST(GETDATE() AS DATE);
+    DECLARE @YearPosition INT = PATINDEX('%[12][0-9][0-9][0-9]%', @NormalizedSearch);
+    DECLARE @CodePosition INT = PATINDEX('%[0-9][0-9][0-9]%', @Search);
+    DECLARE @HasSpecificText BIT = 0;
+    DECLARE @GroupByAcademicYear BIT = 0;
+
+    IF CHARINDEX(N'|academic_years', @Search) > 0
+    BEGIN
+        SET @GroupByAcademicYear = 1;
+        SET @Search = REPLACE(@Search, N'|academic_years', N'');
+        SET @NormalizedSearch = LOWER(@Search);
+    END;
+
+    IF @YearPosition > 0
+    BEGIN
+        SET @StartDate = DATEFROMPARTS(TRY_CONVERT(INT, SUBSTRING(@NormalizedSearch, @YearPosition, 4)), 1, 1);
+    END;
+
+    IF @CodePosition > 0
+    BEGIN
+        SET @AccountCode = SUBSTRING(@Search, @CodePosition, 10);
+        SET @AccountCode = LEFT(@AccountCode, PATINDEX('%[^0-9]%', @AccountCode + N'X') - 1);
+    END;
+
+    IF @AccountCode IS NULL
+       AND @Search NOT IN (N'', N'all years', N'كل السنوات', N'لكل السنوات', N'كل الاعوام', N'لكل الاعوام', N'كل الأعوام', N'لكل الأعوام')
+    BEGIN
+        SET @HasSpecificText = 1;
+    END;
+
+    ;WITH FilteredRows AS
+    (
+        SELECT
+            *,
+            CASE
+                WHEN MONTH([date]) >= 9
+                    THEN CONVERT(NVARCHAR(4), YEAR([date])) + N'-' + CONVERT(NVARCHAR(4), YEAR([date]) + 1)
+                ELSE CONVERT(NVARCHAR(4), YEAR([date]) - 1) + N'-' + CONVERT(NVARCHAR(4), YEAR([date]))
+            END AS AcademicYear
+        FROM dbo.ExpencesAccDocSum
+        WHERE (
+                (@AccountCode IS NOT NULL AND FromAccountID LIKE @AccountCode + N'%')
+                OR (@AccountCode IS NULL AND @HasSpecificText = 0 AND FromAccountID LIKE N'3%')
+                OR (@AccountCode IS NULL AND @HasSpecificText = 1)
+          )
+          AND (@StartDate IS NULL OR ([date] >= @StartDate AND [date] < DATEADD(DAY, 1, @EndDate)))
+          AND (
+                @AccountCode IS NOT NULL
+                OR @HasSpecificText = 0
+                OR ToAccountName LIKE N'%' + @Search + N'%'
+                OR DocTitl LIKE N'%' + @Search + N'%'
+                OR CAST(DocDetails AS NVARCHAR(MAX)) LIKE N'%' + @Search + N'%'
+                OR AddedBy LIKE N'%' + @Search + N'%'
+                OR DepartmentName LIKE N'%' + @Search + N'%'
+          )
+    )
+    SELECT
+        CASE WHEN @GroupByAcademicYear = 1 THEN AcademicYear ELSE NULL END AS AcademicYear,
+        CASE
+            WHEN @AccountCode IS NOT NULL THEN @AccountCode
+            WHEN @HasSpecificText = 0 THEN N'3'
+            ELSE N'text search'
+        END AS AccountPrefix,
+        @Search AS SearchText,
+        COUNT_BIG(*) AS TransactionCount,
+        MIN([date]) AS PeriodStart,
+        MAX([date]) AS PeriodEnd,
+        SUM(ISNULL(DebetValue, 0)) AS TotalDebetValue,
+        SUM(ISNULL(CreditValue, 0)) AS TotalCreditValue,
+        SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS TotalExpensesValue,
+        SUM(ISNULL(DebetValue, 0) - ISNULL(CreditValue, 0)) AS NetExpensesValue,
+        AVG(CAST(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0) AS DECIMAL(18, 2))) AS AverageExpensesValue,
+        MIN(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MinimumExpensesValue,
+        MAX(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0)) AS MaximumExpensesValue,
+        SQRT(ABS(CONVERT(FLOAT, SUM(ISNULL(DebetValue, 0) + ISNULL(CreditValue, 0))))) AS SquareRootTotalValue
+    FROM FilteredRows
+    GROUP BY CASE WHEN @GroupByAcademicYear = 1 THEN AcademicYear ELSE NULL END
+    ORDER BY AcademicYear;
 END;
 GO

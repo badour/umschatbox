@@ -46,34 +46,12 @@
             padding: 24px;
         }
 
-        .chatbot-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .chatbot-action {
-            background: #eef5ff;
-            border: 1px solid #b9d5f3;
-            border-radius: 999px;
-            color: #0f5c9c;
-            cursor: pointer;
-            font-weight: bold;
-            padding: 10px 16px;
-        }
-
-        .chatbot-action.active,
-        .chatbot-action:hover {
-            background: #0f5c9c;
-            color: #ffffff;
-        }
-
         .chatbot-message {
             background: #eef2f7;
             border-radius: 10px;
             margin-bottom: 18px;
             padding: 14px 16px;
+            white-space: pre-line;
         }
 
         .chatbot-message.error {
@@ -86,7 +64,16 @@
             color: #4b5563;
             font-size: 14px;
             line-height: 1.5;
-            margin: -6px 0 18px;
+            margin: 0 0 18px;
+        }
+
+        .chatbot-thinking-note {
+            background: #f8fafc;
+            border: 1px solid #d8dee9;
+            border-radius: 10px;
+            color: #374151;
+            margin-bottom: 18px;
+            padding: 12px 14px;
         }
 
         .chatbot-input-row {
@@ -162,17 +149,13 @@
         <div class="chatbot-shell">
             <div class="chatbot-card">
                 <div class="chatbot-header">
-                    <h1>Expenses Chatbot</h1>
-                    <p>Type a full question or use the buttons for guided searches.</p>
+                    <h1>University Analytics Chatbot</h1>
+                    <p>Ask a full Arabic or English question. The bot will classify, query SQL, think about the returned data, and explain the result.</p>
                 </div>
 
                 <div class="chatbot-body">
-                    <asp:HiddenField ID="hdnQueryType" runat="server" />
-
-                    <div class="chatbot-actions">
-                        <asp:Button ID="btnFileLinks" runat="server" CssClass="chatbot-action" Text="File links" OnClick="btnFileLinks_Click" CausesValidation="false" />
-                        <asp:Button ID="btnInvoiceExpenseCode" runat="server" CssClass="chatbot-action" Text="Invoice expense code" OnClick="btnInvoiceExpenseCode_Click" CausesValidation="false" />
-                        <asp:Button ID="btnPersonExpenses" runat="server" CssClass="chatbot-action" Text="Person expenses" OnClick="btnPersonExpenses_Click" CausesValidation="false" />
+                    <div class="chatbot-thinking-note">
+                        No buttons are needed. The chatbot decides whether your request is about account-related expenses, fixed assets, buildings, or total expenses.
                     </div>
 
                     <div id="botMessage" runat="server" class="chatbot-message">
@@ -181,12 +164,11 @@
                     </div>
 
                     <div class="chatbot-examples">
-                        Examples: <strong>show me expenses for Ahmed</strong>,
-                        <strong>what is the expense code for invoice INV-10045</strong>,
-                        <strong>find file links for receipt.pdf</strong>,
-                        <strong>ابحث عن ملف رقم المستند 12345</strong>,
-                        <strong>ابحث عن المستند رقم 42 لسنة 2024-2025</strong>,
-                        <strong>اعرض الملفات بالتكلفة 1500</strong>.
+                        Examples: <strong>المصاريف المتعلقة بالصيانة السيارات 3314</strong>,
+                        <strong>المجموع الكلي للموجودات الثابتة للكلية لكل السنوات</strong>,
+                        <strong>المجموع الكلي للمباني للكلية لكل الاعوام</strong>,
+                        <strong>المجموع الكلي للمصروفات لشخص احمد</strong>,
+                        <strong>المجموع الكلي للمصروفات لتبويب محاسبي 3314</strong>.
                     </div>
 
                     <div class="chatbot-input-row">
@@ -197,12 +179,6 @@
                         <asp:Button ID="btnSend" runat="server" CssClass="chatbot-send" Text="Ask" OnClick="btnSend_Click" />
                     </div>
 
-                    <asp:GridView ID="grdResults" runat="server"
-                        AutoGenerateColumns="true"
-                        CssClass="chatbot-results"
-                        EmptyDataText="No results to show."
-                        GridLines="None"
-                        OnRowDataBound="grdResults_RowDataBound" />
                 </div>
             </div>
         </div>
